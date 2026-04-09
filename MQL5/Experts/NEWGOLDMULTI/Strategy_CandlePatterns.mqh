@@ -3,26 +3,26 @@
 
 // --- Individual pattern detectors ---
 
-// Bull pin bar: long lower shadow > 2x body, lower shadow > upper shadow, lower shadow > 60% of range
+// Bull pin bar: lower shadow dominates range, body small, shadow > upper shadow
 bool CP_BullPin(MqlRates &r)
 {
+   double range = r.high - r.low;
+   if(range <= 0) return false;
    double body  = MathAbs(r.close - r.open);
    double upper = r.high  - MathMax(r.open, r.close);
    double lower = MathMin(r.open, r.close) - r.low;
-   double range = r.high  - r.low;
-   if(range <= 0) return false;
-   return (lower > 2.0 * MathMax(body, _Point) && lower > upper && lower > 0.6 * range);
+   return (lower > 0.6 * range && lower > upper * 2.0 && body < 0.3 * range);
 }
 
-// Bear pin bar: long upper shadow > 2x body, upper > lower, upper > 60% of range
+// Bear pin bar: upper shadow dominates range, body small, shadow > lower shadow
 bool CP_BearPin(MqlRates &r)
 {
+   double range = r.high - r.low;
+   if(range <= 0) return false;
    double body  = MathAbs(r.close - r.open);
    double upper = r.high  - MathMax(r.open, r.close);
    double lower = MathMin(r.open, r.close) - r.low;
-   double range = r.high  - r.low;
-   if(range <= 0) return false;
-   return (upper > 2.0 * MathMax(body, _Point) && upper > lower && upper > 0.6 * range);
+   return (upper > 0.6 * range && upper > lower * 2.0 && body < 0.3 * range);
 }
 
 // Doji: body < 10% of range

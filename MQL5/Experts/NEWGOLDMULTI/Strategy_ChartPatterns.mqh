@@ -1,6 +1,10 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+// Tolerance for neckline breakout confirmation:
+//   price must close beyond neckline by this fraction of ATR.
+static const double NECKLINE_BREAK_ATR = 0.15;
+
 //------------------------------------------------------------------
 // Chart Pattern approximation
 //
@@ -53,7 +57,7 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
       double neck = r[sh1 + 1].low;
       for(int i = sh1 + 1; i < sh2 && i < ArraySize(r); i++)
          if(r[i].low < neck) neck = r[i].low;
-      if(r[0].close < neck - atrVal * 0.15) se++;   // confirmed break below neckline
+      if(r[0].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;   // confirmed break below neckline
    }
 
    // --- Double Bottom ---
@@ -62,7 +66,7 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
       double neck = r[sl1 + 1].high;
       for(int i = sl1 + 1; i < sl2 && i < ArraySize(r); i++)
          if(r[i].high > neck) neck = r[i].high;
-      if(r[0].close > neck + atrVal * 0.15) b++;    // confirmed break above neckline
+      if(r[0].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;    // confirmed break above neckline
    }
 
    // --- Head & Shoulders (bearish) ---
@@ -84,7 +88,7 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          double neck = r[sh1 + 1].low;
          for(int i = sh1; i < sh2 && i < ArraySize(r); i++)
             if(r[i].low < neck) neck = r[i].low;
-         if(r[0].close < neck - atrVal * 0.1) se++;
+         if(r[0].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
       }
    }
 
@@ -106,7 +110,7 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          double neck = r[sl1 + 1].high;
          for(int i = sl1; i < sl2 && i < ArraySize(r); i++)
             if(r[i].high > neck) neck = r[i].high;
-         if(r[0].close > neck + atrVal * 0.1) b++;
+         if(r[0].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
       }
    }
 

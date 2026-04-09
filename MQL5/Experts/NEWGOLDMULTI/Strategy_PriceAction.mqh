@@ -1,6 +1,11 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+// Fraction of ATR used as tolerance for range-breakout detection.
+static const double BREAKOUT_ATR_TOL = 0.1;
+// Fraction of ATR for support/resistance proximity (bounce detection).
+static const double SR_PROXIMITY_ATR = 0.2;
+
 int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
@@ -26,7 +31,7 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
    }
 
    // Clean breakout of range (price beyond extremes by at least 10% of ATR)
-   double brkTol = atrVal * 0.1;
+   double brkTol = atrVal * BREAKOUT_ATR_TOL;
    if(r[0].close > hi + brkTol) b++;
    if(r[0].close < lo - brkTol) se++;
 
@@ -53,9 +58,9 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(nH >= 3 && r[swH[0]].high < r[swH[1]].high && r[swH[1]].high < r[swH[2]].high) se++;
 
    // Bullish support bounce: bullish bar near 10-bar low (within 20% ATR)
-   if(r[0].close > r[0].open && r[0].low <= lo + atrVal * 0.2) b++;
+   if(r[0].close > r[0].open && r[0].low <= lo + atrVal * SR_PROXIMITY_ATR) b++;
    // Bearish resistance rejection: bearish bar near 10-bar high (within 20% ATR)
-   if(r[0].close < r[0].open && r[0].high >= hi - atrVal * 0.2) se++;
+   if(r[0].close < r[0].open && r[0].high >= hi - atrVal * SR_PROXIMITY_ATR) se++;
 
    // Normalize to 0..5
    b  = MathMin(b,  5);

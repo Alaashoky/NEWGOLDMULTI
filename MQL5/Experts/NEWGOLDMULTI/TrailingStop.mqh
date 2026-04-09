@@ -94,8 +94,8 @@ public:
 
             if(newSL <= 0.0) continue;
 
-            // Only move SL upward (favorable direction for BUY)
-            if(newSL <= curSL + pt) continue;
+            // Only move SL upward (strict ratchet — never lower the SL for BUY)
+            if(newSL <= curSL) continue;
 
             // Respect broker stop level (SL must be below bid by at least stpLvl points)
             double minDist = (double)MathMax(stpLvl, 1) * pt;
@@ -128,8 +128,8 @@ public:
 
             if(newSL <= 0.0) continue;
 
-            // Only move SL downward (favorable direction for SELL)
-            if(curSL > 0.0 && newSL >= curSL - pt) continue;
+            // Only move SL downward (strict ratchet — never raise the SL for SELL)
+            if(curSL > 0.0 && newSL >= curSL) continue;
 
             // Respect broker stop level (SL must be above ask by at least stpLvl points)
             double minDist = (double)MathMax(stpLvl, 1) * pt;

@@ -24,7 +24,11 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
    IndicatorRelease(hATR);
    if(!ok || atr[0] <= 0.0) return 0;
-   double tol = atr[0] / SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 0.0002; // ~ATR tolerance as ratio
+   // Convert ATR from price units to a ratio relative to the XA price swing.
+   // A tolerance of 0.0002 per point of ATR means: for a 100-point ATR bar,
+   // the ratio tolerance is 0.02 (2%), which matches typical harmonic pattern
+   // validation zones (e.g., 0.618 ± 0.02 = 0.598..0.638).
+   double tol = atr[0] / SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 0.0002;
 
    // Collect 5 alternating swing points (X, A, B, C, D pattern)
    // We look for alternating high/low pivots using 3-bar-side strength
