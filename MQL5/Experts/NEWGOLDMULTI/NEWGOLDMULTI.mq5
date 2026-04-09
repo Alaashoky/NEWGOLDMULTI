@@ -124,7 +124,8 @@ void OnTick()
       return;
    }
 
-   StrategySignal signals[14];
+   const int STRATEGY_COUNT = 14;
+   StrategySignal signals[STRATEGY_COUNT];
    int n=0;
 
    SignalReset(signals[n], "Indicators", InpUseIndicators, InpPriIndicators);

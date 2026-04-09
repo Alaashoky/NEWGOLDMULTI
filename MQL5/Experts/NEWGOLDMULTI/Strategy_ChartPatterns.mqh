@@ -1,6 +1,8 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+const double CP_DOUBLE_TOL_POINTS = 30;
+
 int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tf,0,120,r)<80) return 0;
@@ -8,8 +10,8 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    // Double bottom / double top approximation
    double lowA=r[40].low, lowB=r[20].low, highA=r[40].high, highB=r[20].high;
-   if(MathAbs(lowA-lowB)<=30*_Point && r[0].close>r[10].high) b++;
-   if(MathAbs(highA-highB)<=30*_Point && r[0].close<r[10].low) se++;
+   if(MathAbs(lowA-lowB)<=CP_DOUBLE_TOL_POINTS*_Point && r[0].close>r[10].high) b++;
+   if(MathAbs(highA-highB)<=CP_DOUBLE_TOL_POINTS*_Point && r[0].close<r[10].low) se++;
 
    // Wedge breakout approximation
    if(r[0].close>r[1].high && r[1].high<r[2].high && r[2].high<r[3].high) b++;

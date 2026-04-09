@@ -1,6 +1,10 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+const double SR_NEAR_PCT = 0.01;
+const double SR_BREAK_ABOVE = 1.01;
+const double SR_BREAK_BELOW = 0.99;
+
 int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tf,0,220,r)<120) return 0;
@@ -10,10 +14,10 @@ int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    double bid=SymbolInfoDouble(_Symbol,SYMBOL_BID), ask=SymbolInfoDouble(_Symbol,SYMBOL_ASK);
    int b=0,se=0;
-   for(int i=0;i<sc;i++) if(MathAbs(bid-sups[i])<0.01*bid && bid>sups[i]){b++;break;}
-   for(int i=0;i<rc;i++) if(MathAbs(ask-ress[i])<0.01*ask && ask<ress[i]){se++;break;}
-   for(int i=0;i<rc;i++) if(bid>ress[i] && bid<ress[i]*1.01){b++;break;}
-   for(int i=0;i<sc;i++) if(ask<sups[i] && ask>sups[i]*0.99){se++;break;}
+   for(int i=0;i<sc;i++) if(MathAbs(bid-sups[i])<SR_NEAR_PCT*bid && bid>sups[i]){b++;break;}
+   for(int i=0;i<rc;i++) if(MathAbs(ask-ress[i])<SR_NEAR_PCT*ask && ask<ress[i]){se++;break;}
+   for(int i=0;i<rc;i++) if(bid>ress[i] && bid<ress[i]*SR_BREAK_ABOVE){b++;break;}
+   for(int i=0;i<sc;i++) if(ask<sups[i] && ask>sups[i]*SR_BREAK_BELOW){se++;break;}
 
    if(b>0&&b>=se){s.direction=SIGNAL_BUY;s.strength=b;s.reason="support resistance buy";}
    else if(se>0&&se>b){s.direction=SIGNAL_SELL;s.strength=se;s.reason="support resistance sell";}

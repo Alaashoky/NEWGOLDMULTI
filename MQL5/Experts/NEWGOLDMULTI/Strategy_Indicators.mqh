@@ -9,7 +9,17 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
    int hRSI=iRSI(_Symbol,tf,14,PRICE_CLOSE), hMACD=iMACD(_Symbol,tf,12,26,9,PRICE_CLOSE), hADX=iADX(_Symbol,tf,14);
    int hSt=iStochastic(_Symbol,tf,5,3,3,MODE_SMA,STO_LOWHIGH), hF=iMA(_Symbol,tf,20,0,MODE_EMA,PRICE_CLOSE);
    int hS=iMA(_Symbol,tf,50,0,MODE_EMA,PRICE_CLOSE), hBB=iBands(_Symbol,tf,20,0,2.0,PRICE_CLOSE);
-   if(hRSI<0||hMACD<0||hADX<0||hSt<0||hF<0||hS<0||hBB<0) return 0;
+   if(hRSI<0||hMACD<0||hADX<0||hSt<0||hF<0||hS<0||hBB<0)
+   {
+      if(hRSI>=0) IndicatorRelease(hRSI);
+      if(hMACD>=0) IndicatorRelease(hMACD);
+      if(hADX>=0) IndicatorRelease(hADX);
+      if(hSt>=0) IndicatorRelease(hSt);
+      if(hF>=0) IndicatorRelease(hF);
+      if(hS>=0) IndicatorRelease(hS);
+      if(hBB>=0) IndicatorRelease(hBB);
+      return 0;
+   }
 
    double rsi[3], mm[3], ms[3], adx[2], sk[3], sd[3], mf[3], msl[3], bup[3], bmid[3], blo[3];
    ArraySetAsSeries(rsi,true);ArraySetAsSeries(mm,true);ArraySetAsSeries(ms,true);ArraySetAsSeries(adx,true);

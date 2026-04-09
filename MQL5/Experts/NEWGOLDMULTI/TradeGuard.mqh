@@ -82,7 +82,7 @@ public:
             continue;
          }
 
-         // higher strength first, then smaller priority value
+         // higher strength first, then smaller priority value (lower number = higher priority)
          if(signals[i].strength > signals[bestIdx].strength ||
             (signals[i].strength == signals[bestIdx].strength && signals[i].priority < signals[bestIdx].priority))
          {

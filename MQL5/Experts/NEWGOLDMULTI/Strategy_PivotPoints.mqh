@@ -1,6 +1,8 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+const double PP_DEFAULT_PROX_POINTS = 200;
+
 int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
 {
    MqlRates d[]; ArraySetAsSeries(d,true); if(CopyRates(_Symbol,PERIOD_D1,1,1,d)<1) return 0;
@@ -9,7 +11,7 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
 
    MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,signalTf,0,3,r)<2) return 0;
    double bid=SymbolInfoDouble(_Symbol,SYMBOL_BID), ask=SymbolInfoDouble(_Symbol,SYMBOL_ASK);
-   double prox=200*_Point;
+   double prox=PP_DEFAULT_PROX_POINTS*_Point;
    int b=0,se=0;
    if(MathAbs(bid-s1)<=prox||MathAbs(bid-s2)<=prox) b++;
    if(MathAbs(ask-r1)<=prox||MathAbs(ask-r2)<=prox) se++;

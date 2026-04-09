@@ -1,6 +1,8 @@
 #property strict
 #include "StrategyTypes.mqh"
 
+const double TA_FIB_RATIO = 1.618;
+
 int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlDateTime t; TimeToStruct(TimeCurrent(), t);
@@ -21,7 +23,7 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    // Fib-time inspired check based on recent swing duration
    long base=(long)(r[10].time-r[30].time);
-   long proj=(long)(base*1.618);
+   long proj=(long)(base*TA_FIB_RATIO);
    if(MathAbs((long)(r[0].time-r[10].time)-proj)<3600) { b++; se++; }
 
    // assign direction by latest candle momentum

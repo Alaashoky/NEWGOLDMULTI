@@ -2,6 +2,7 @@
 #include "StrategyTypes.mqh"
 
 bool _HP_Near(double a,double b,double tol){return MathAbs(a-b)<=tol;}
+const double HP_TOLERANCE = 0.18;
 
 int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
@@ -14,7 +15,7 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(XA<=0||AB<=0||BC<=0||CD<=0) return 0;
 
    double rAB=AB/XA, rBC=BC/AB, rCD=CD/BC;
-   double tol=0.18;
+   double tol=HP_TOLERANCE;
 
    // Generic harmonic bullish completion near D (gartley/bat/butterfly/crab approximations)
    bool bullish = _HP_Near(rAB,0.618,tol) && (_HP_Near(rBC,0.382,tol)||_HP_Near(rBC,0.886,tol)) && (rCD>1.2&&rCD<3.8) && r[0].close>r[1].close;
