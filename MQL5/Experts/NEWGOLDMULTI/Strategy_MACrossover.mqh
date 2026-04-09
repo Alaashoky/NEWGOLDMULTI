@@ -4,16 +4,10 @@
 int SigMACrossover(StrategySignal &s, ENUM_TIMEFRAMES tf,
                    int fastP, int slowP, int longP, int minConf)
 {
-   int hf = iMA(_Symbol, tf, fastP, 0, MODE_EMA, PRICE_CLOSE);
-   int hs = iMA(_Symbol, tf, slowP, 0, MODE_EMA, PRICE_CLOSE);
-   int hl = iMA(_Symbol, tf, longP, 0, MODE_EMA, PRICE_CLOSE);
-   if(hf < 0 || hs < 0 || hl < 0)
-   {
-      if(hf >= 0) IndicatorRelease(hf);
-      if(hs >= 0) IndicatorRelease(hs);
-      if(hl >= 0) IndicatorRelease(hl);
-      return 0;
-   }
+   int hf = IndGet_EMA(tf, fastP);
+   int hs = IndGet_EMA(tf, slowP);
+   int hl = IndGet_EMA(tf, longP);
+   if(hf == INVALID_HANDLE || hs == INVALID_HANDLE || hl == INVALID_HANDLE) return 0;
 
    double f[], sl[], lg[];
    ArraySetAsSeries(f,  true);
@@ -25,7 +19,6 @@ int SigMACrossover(StrategySignal &s, ENUM_TIMEFRAMES tf,
           && CopyBuffer(hf, 0, 0, 3, f)  >= 3
           && CopyBuffer(hs, 0, 0, 3, sl) >= 3
           && CopyBuffer(hl, 0, 0, 2, lg) >= 1;
-   IndicatorRelease(hf); IndicatorRelease(hs); IndicatorRelease(hl);
    if(!ok) return 0;
 
    int b = 0, se = 0;
@@ -56,4 +49,3 @@ int SigMACrossover(StrategySignal &s, ENUM_TIMEFRAMES tf,
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "ma crossover sell"; }
    return MathMax(b, se);
 }
-

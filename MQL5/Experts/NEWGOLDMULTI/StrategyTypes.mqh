@@ -89,6 +89,143 @@ bool GetCachedRates(ENUM_TIMEFRAMES tf, int needed, MqlRates &rates[])
 }
 
 //------------------------------------------------------------------
+// Indicator Handle Pool
+//
+// Handles are created lazily on first use and reused for the entire
+// EA session.  This eliminates the per-tick/per-bar overhead of
+// creating and releasing indicator instances inside strategy
+// functions, which is the primary cause of backtest slowness.
+//
+// Usage inside strategy functions:
+//   int h = IndGet_ATR(tf, 14);
+//   if(h == INVALID_HANDLE) return 0;
+//   CopyBuffer(h, 0, 0, 1, buf);   // no IndicatorRelease needed
+//
+// Call IndPoolReleaseAll() inside OnDeinit() to free handles.
+//------------------------------------------------------------------
+#define IND_POOL_SIZE 64
+
+struct _IndPoolEntry
+{
+   string key;
+   int    handle;
+};
+
+static _IndPoolEntry _g_indPool[IND_POOL_SIZE];
+static int           _g_indPool_n = 0;
+
+int IndPoolGet(const string &key)
+{
+   for(int i = 0; i < _g_indPool_n; i++)
+      if(_g_indPool[i].key == key) return _g_indPool[i].handle;
+   return INVALID_HANDLE;
+}
+
+void IndPoolAdd(const string &key, int handle)
+{
+   if(_g_indPool_n < IND_POOL_SIZE)
+   {
+      _g_indPool[_g_indPool_n].key    = key;
+      _g_indPool[_g_indPool_n].handle = handle;
+      _g_indPool_n++;
+   }
+}
+
+void IndPoolReleaseAll()
+{
+   for(int i = 0; i < _g_indPool_n; i++)
+      if(_g_indPool[i].handle != INVALID_HANDLE)
+         IndicatorRelease(_g_indPool[i].handle);
+   _g_indPool_n = 0;
+}
+
+// Convenience: get-or-create helpers for each indicator type used
+
+int IndGet_ATR(ENUM_TIMEFRAMES tf, int period)
+{
+   string key = StringFormat("ATR_%d_%d", (int)tf, period);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iATR(_Symbol, tf, period);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_RSI(ENUM_TIMEFRAMES tf, int period)
+{
+   string key = StringFormat("RSI_%d_%d", (int)tf, period);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iRSI(_Symbol, tf, period, PRICE_CLOSE);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_MACD(ENUM_TIMEFRAMES tf, int fast, int slow, int sig)
+{
+   string key = StringFormat("MACD_%d_%d_%d_%d", (int)tf, fast, slow, sig);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iMACD(_Symbol, tf, fast, slow, sig, PRICE_CLOSE);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_ADX(ENUM_TIMEFRAMES tf, int period)
+{
+   string key = StringFormat("ADX_%d_%d", (int)tf, period);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iADX(_Symbol, tf, period);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_Stoch(ENUM_TIMEFRAMES tf, int kp, int dp, int slowing)
+{
+   string key = StringFormat("STOCH_%d_%d_%d_%d", (int)tf, kp, dp, slowing);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iStochastic(_Symbol, tf, kp, dp, slowing, MODE_SMA, STO_LOWHIGH);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_EMA(ENUM_TIMEFRAMES tf, int period)
+{
+   string key = StringFormat("EMA_%d_%d", (int)tf, period);
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iMA(_Symbol, tf, period, 0, MODE_EMA, PRICE_CLOSE);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+int IndGet_BB(ENUM_TIMEFRAMES tf, int period, double dev)
+{
+   string key = StringFormat("BB_%d_%d_%d", (int)tf, period, (int)(dev * 100.0));
+   int h = IndPoolGet(key);
+   if(h == INVALID_HANDLE)
+   {
+      h = iBands(_Symbol, tf, period, 0, dev, PRICE_CLOSE);
+      if(h != INVALID_HANDLE) IndPoolAdd(key, h);
+   }
+   return h;
+}
+
+//------------------------------------------------------------------
 
 enum ENUM_SIGNAL_DIR
 {

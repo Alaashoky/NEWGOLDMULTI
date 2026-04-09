@@ -6,25 +6,16 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
    MqlRates rates[]; ArraySetAsSeries(rates, true);
    if(!GetCachedRates(tf, 50, rates) || ArraySize(rates) < 5) return 0;
 
-   int hRSI  = iRSI(_Symbol,  tf, 14, PRICE_CLOSE);
-   int hMACD = iMACD(_Symbol, tf, 12, 26, 9, PRICE_CLOSE);
-   int hADX  = iADX(_Symbol,  tf, 14);
-   int hSt   = iStochastic(_Symbol, tf, 5, 3, 3, MODE_SMA, STO_LOWHIGH);
-   int hF    = iMA(_Symbol,   tf, 20, 0, MODE_EMA, PRICE_CLOSE);
-   int hSlow = iMA(_Symbol,   tf, 50, 0, MODE_EMA, PRICE_CLOSE);
-   int hBB   = iBands(_Symbol, tf, 20, 0, 2.0, PRICE_CLOSE);
-
-   if(hRSI < 0 || hMACD < 0 || hADX < 0 || hSt < 0 || hF < 0 || hSlow < 0 || hBB < 0)
-   {
-      if(hRSI  >= 0) IndicatorRelease(hRSI);
-      if(hMACD >= 0) IndicatorRelease(hMACD);
-      if(hADX  >= 0) IndicatorRelease(hADX);
-      if(hSt   >= 0) IndicatorRelease(hSt);
-      if(hF    >= 0) IndicatorRelease(hF);
-      if(hSlow >= 0) IndicatorRelease(hSlow);
-      if(hBB   >= 0) IndicatorRelease(hBB);
-      return 0;
-   }
+   int hRSI  = IndGet_RSI(tf, 14);
+   int hMACD = IndGet_MACD(tf, 12, 26, 9);
+   int hADX  = IndGet_ADX(tf, 14);
+   int hSt   = IndGet_Stoch(tf, 5, 3, 3);
+   int hF    = IndGet_EMA(tf, 20);
+   int hSlow = IndGet_EMA(tf, 50);
+   int hBB   = IndGet_BB(tf, 20, 2.0);
+   if(hRSI == INVALID_HANDLE || hMACD == INVALID_HANDLE || hADX == INVALID_HANDLE
+   || hSt  == INVALID_HANDLE || hF    == INVALID_HANDLE || hSlow == INVALID_HANDLE
+   || hBB  == INVALID_HANDLE) return 0;
 
    double rsi[], mm[], ms[], adx[], sk[], sd[], mf[], msl[], bup[], bmid[], blo[];
    ArraySetAsSeries(rsi,  true); ArraySetAsSeries(mm,   true); ArraySetAsSeries(ms,   true);
@@ -43,10 +34,6 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
           && CopyBuffer(hBB,   1, 0, 3, bup)  >= 3
           && CopyBuffer(hBB,   0, 0, 3, bmid) >= 3
           && CopyBuffer(hBB,   2, 0, 3, blo)  >= 3;
-
-   IndicatorRelease(hRSI);  IndicatorRelease(hMACD); IndicatorRelease(hADX);
-   IndicatorRelease(hSt);   IndicatorRelease(hF);    IndicatorRelease(hSlow);
-   IndicatorRelease(hBB);
    if(!ok) return 0;
 
    int buy = 0, sell = 0;
@@ -84,4 +71,3 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
       { s.direction = SIGNAL_SELL; s.strength = sell; s.reason = "indicator confluence sell"; }
    return MathMax(buy, sell);
 }
-
