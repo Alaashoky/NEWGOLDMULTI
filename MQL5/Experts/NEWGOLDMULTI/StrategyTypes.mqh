@@ -43,29 +43,38 @@ bool GetCachedRates(ENUM_TIMEFRAMES tf, int needed, MqlRates &rates[])
 
       if(_g_brc[i].barTime == barTime && ArraySize(_g_brc[i].data) >= needed)
       {
-         // Cache hit — copy to caller
+         // Full cache hit — copy subset to caller
          ArraySetAsSeries(rates, true);
          ArrayCopy(rates, _g_brc[i].data, 0, 0, needed);
          return true;
       }
-      // Same TF but stale bar or insufficient data — fall through to refetch
+      // Same TF slot found but either stale bar or too few bars stored.
+      // Exit loop and fall through to refetch; the slot will be reused below.
       break;
    }
 
-   // Cache miss — fetch fresh data
+   // Cache miss / refresh — fetch fresh data
    MqlRates tmp[];
    ArraySetAsSeries(tmp, true);
    int got = CopyRates(_Symbol, tf, 0, needed, tmp);
    if(got < needed) return false;
 
-   // Find or allocate slot
+   // Reuse the existing slot for this TF, or allocate a new one.
+   // If the table is full use a simple round-robin to avoid always evicting
+   // slot 0 when many timeframes are active.
+   static int _g_brc_evict = 0;
    int slot = -1;
    for(int i = 0; i < _g_brc_n; i++)
       if(_g_brc[i].tf == tf) { slot = i; break; }
    if(slot < 0)
    {
-      if(_g_brc_n < BAR_CACHE_SLOTS) slot = _g_brc_n++;
-      else                            slot = 0;   // fallback: overwrite first
+      if(_g_brc_n < BAR_CACHE_SLOTS)
+         slot = _g_brc_n++;
+      else
+      {
+         slot = _g_brc_evict;
+         _g_brc_evict = (_g_brc_evict + 1) % BAR_CACHE_SLOTS;
+      }
    }
 
    _g_brc[slot].tf      = tf;

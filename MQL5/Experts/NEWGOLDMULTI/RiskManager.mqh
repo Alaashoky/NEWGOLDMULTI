@@ -155,7 +155,7 @@ public:
    bool AllowNewTrade(string &reason)
    {
       if(!m_enabled) return true;
-      if(m_dayStartEquity <= 0.0) return true;
+      if(m_dayStartEquity < 0.01) return true;   // guard against near-zero equity
 
       double eq = AccountInfoDouble(ACCOUNT_EQUITY);
       double dd = 100.0 * (m_dayStartEquity - eq) / m_dayStartEquity;

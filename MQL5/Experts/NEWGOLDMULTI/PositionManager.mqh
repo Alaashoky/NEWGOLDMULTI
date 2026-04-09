@@ -38,8 +38,9 @@ private:
       double tickVal  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
       double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
       double pt       = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+      // All three must be positive before any division
       if(tickVal <= 0.0 || tickSize <= 0.0 || pt <= 0.0) return 0.0;
-      // value per point per 1 lot
+      // value per point per 1 lot; tickSize > 0 verified above (no div-by-zero)
       double valPerPt = tickVal * (pt / tickSize);
       if(valPerPt <= 0.0) return 0.0;
       return money / (valPerPt * volume);
@@ -90,7 +91,7 @@ public:
          // Convert (steps - 1) steps of locked profit to price distance
          double lockMoney  = (double)(steps - 1) * m_stepMoney;
          double lockPts    = MoneyToPoints(lockMoney, volume);
-         if(lockPts < 0.0) lockPts = 0.0;
+         // lockPts is always >= 0 (MoneyToPoints returns 0 when lockMoney=0)
 
          double minDist = (double)MathMax(stpLvl, 1) * pt;
 
