@@ -4,7 +4,7 @@
 int SigVolumeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 60, r) < 30) return 0;
+   if(!GetCachedRates(tf, 60, r) || ArraySize(r) < 30) return 0;
 
    long vol[]; ArraySetAsSeries(vol, true);
    if(CopyTickVolume(_Symbol, tf, 0, 60, vol) < 30) return 0;

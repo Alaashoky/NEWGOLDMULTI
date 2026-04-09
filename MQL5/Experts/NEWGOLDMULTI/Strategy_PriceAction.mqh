@@ -9,7 +9,7 @@ static const double SR_PROXIMITY_ATR = 0.2;
 int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 60, r) < 30) return 0;
+   if(!GetCachedRates(tf, 60, r) || ArraySize(r) < 30) return 0;
 
    // ATR for adaptive tolerances
    int hATR = iATR(_Symbol, tf, 14);

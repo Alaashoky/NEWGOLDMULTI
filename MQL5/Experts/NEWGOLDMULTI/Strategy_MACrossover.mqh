@@ -21,7 +21,7 @@ int SigMACrossover(StrategySignal &s, ENUM_TIMEFRAMES tf,
    ArraySetAsSeries(lg, true);
 
    MqlRates r[]; ArraySetAsSeries(r, true);
-   bool ok = CopyRates(_Symbol, tf, 0, longP + 5, r) >= longP + 2
+   bool ok = GetCachedRates(tf, longP + 5, r) && ArraySize(r) >= longP + 2
           && CopyBuffer(hf, 0, 0, 3, f)  >= 3
           && CopyBuffer(hs, 0, 0, 3, sl) >= 3
           && CopyBuffer(hl, 0, 0, 2, lg) >= 1;

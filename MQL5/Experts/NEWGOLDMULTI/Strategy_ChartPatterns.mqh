@@ -18,7 +18,7 @@ static const double NECKLINE_BREAK_ATR = 0.15;
 int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 150, r) < 80) return 0;
+   if(!GetCachedRates(tf, 150, r) || ArraySize(r) < 80) return 0;
 
    int hATR = iATR(_Symbol, tf, 14);
    if(hATR < 0) return 0;

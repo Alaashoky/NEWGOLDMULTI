@@ -4,7 +4,7 @@
 int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 220, r) < 120) return 0;
+   if(!GetCachedRates(tf, 220, r) || ArraySize(r) < 120) return 0;
 
    // ATR-based proximity (replaces fixed percentage)
    int hATR = iATR(_Symbol, tf, 14);

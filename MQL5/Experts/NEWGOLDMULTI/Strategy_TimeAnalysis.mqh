@@ -21,7 +21,7 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
    MqlDateTime t; TimeToStruct(TimeCurrent(), t);
 
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 10, r) < 5) return 0;
+   if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 5) return 0;
 
    // Session windows (broker server time)
    bool londonActive = (t.hour >= 7  && t.hour < 16);   // 07:00–15:59

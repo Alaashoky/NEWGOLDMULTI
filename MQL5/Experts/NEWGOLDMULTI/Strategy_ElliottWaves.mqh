@@ -15,7 +15,7 @@
 int SigElliottWaves(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 150, r) < 100) return 0;
+   if(!GetCachedRates(tf, 150, r) || ArraySize(r) < 100) return 0;
 
    int b = 0, se = 0;
    int nBars = 100;
