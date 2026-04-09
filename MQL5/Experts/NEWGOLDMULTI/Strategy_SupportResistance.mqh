@@ -7,12 +7,10 @@ int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(!GetCachedRates(tf, 220, r) || ArraySize(r) < 120) return 0;
 
    // ATR-based proximity (replaces fixed percentage)
-   int hATR = iATR(_Symbol, tf, 14);
-   if(hATR < 0) return 0;
+   int hATR = IndGet_ATR(tf, 14);
+   if(hATR == INVALID_HANDLE) return 0;
    double atr[]; ArraySetAsSeries(atr, true);
-   bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
-   IndicatorRelease(hATR);
-   if(!ok || atr[0] <= 0.0) return 0;
+   if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
    double atrVal    = atr[0];
    double nearProx  = atrVal * 0.3;  // "near" a level = within 30% ATR
    double brkConfirm = atrVal * 0.15; // confirmed breakout = 15% ATR beyond level
@@ -72,4 +70,3 @@ int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "support resistance sell"; }
    return MathMax(b, se);
 }
-

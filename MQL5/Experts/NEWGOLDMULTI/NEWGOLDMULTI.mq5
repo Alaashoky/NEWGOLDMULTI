@@ -1,12 +1,11 @@
 #property strict
-#property version   "2.10"
+#property version   "2.20"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"
 #include "RiskManager.mqh"
 #include "TradeGuard.mqh"
 #include "VotingEngine.mqh"
-#include "TrailingStop.mqh"
 #include "PositionManager.mqh"
 
 #include "Strategy_Indicators.mqh"
@@ -73,27 +72,12 @@ input ENUM_TIMEFRAMES InpSRTF        = PERIOD_H1;
 input int InpIndicatorsMinVotes = 3;
 input int InpMAFast = 8, InpMASlow = 21, InpMALong = 200, InpMAMinConf = 2;
 
-// ===== Trailing Stop / Break-Even (points-based) =====
-// All values are in _Point units.
-// InpBEStartPts  : points of floating profit before break-even SL is placed.
-//                  0 = disabled.  Default: 200 pts (≈20 pips for XAUUSD).
-// InpBEBufferPts : extra points above/below entry for the break-even SL.
-//                  0 = exact entry.  Default: 50 pts (≈5 pips safety buffer).
-// InpTrailStartPts: points of floating profit before trailing begins.
-//                  0 = disabled.  Default: 400 pts (≈40 pips).
-// InpTrailDistPts : trailing distance from current price (points).
-//                  Default: 200 pts (≈20 pips).
-input double InpBEStartPts    = 200;
-input double InpBEBufferPts   = 50;
-input double InpTrailStartPts = 400;
-input double InpTrailDistPts  = 200;
-
 // ===== Profit-Step Trailing (USD) =====
 // Currency-denominated step trailing independent of symbol price scale.
 // InpUseProfitTrailMoney : enable/disable this trailing system.
 // InpTrailStepMoney      : step size in account currency (default $25).
 //   Behaviour: when floating profit reaches N × step, SL is moved to
-//   lock in (N-1) × step of profit.  Step 1 = break-even (SL to entry).
+//   lock in (N-1) × step of profit.  At step 1 SL moves to entry price.
 input bool   InpUseProfitTrailMoney = true;
 input double InpTrailStepMoney      = 25.0;
 
@@ -107,7 +91,6 @@ input double InpMaxDailyDDPercent  = 5.0;
 // ===== Globals =====
 CRiskManager   g_risk;
 CTradeGuard    g_guard;
-CTrailingStop  g_trail;
 CMoneyTrailing g_moneyTrail;
 CDailyDDGuard  g_ddGuard;
 
@@ -142,21 +125,21 @@ int OnInit()
 
    g_risk.Init(cfg);
    g_guard.Init(InpMagicNumber, InpMaxSlippagePoints);
-   g_trail.Init(InpMagicNumber, InpMaxSlippagePoints,
-                InpBEStartPts, InpBEBufferPts,
-                InpTrailStartPts, InpTrailDistPts);
    g_moneyTrail.Init(InpMagicNumber, InpMaxSlippagePoints,
                      InpUseProfitTrailMoney ? InpTrailStepMoney : 0.0);
    g_ddGuard.Init(InpUseDailyDDGuard, InpMaxDailyDDPercent);
 
    LogMsg(StringFormat(
-      "Initialized | minVotes=%d BE=%g/%g Trail=%g/%g | MoneyTrail=%s step=$%.2f | DailyDD=%s limit=%.1f%%",
+      "Initialized | minVotes=%d | MoneyTrail=%s step=$%.2f | DailyDD=%s limit=%.1f%%",
       InpMinVotes,
-      InpBEStartPts, InpBEBufferPts,
-      InpTrailStartPts, InpTrailDistPts,
       InpUseProfitTrailMoney ? "ON" : "OFF", InpTrailStepMoney,
       InpUseDailyDDGuard ? "ON" : "OFF", InpMaxDailyDDPercent));
    return INIT_SUCCEEDED;
+}
+
+void OnDeinit(const int reason)
+{
+   IndPoolReleaseAll();
 }
 
 void OnTick()
@@ -166,8 +149,7 @@ void OnTick()
    // --- Daily drawdown guard: update day baseline (lightweight) ---
    g_ddGuard.Update();
 
-   // --- Manage open positions (trailing stop / break-even) ---
-   g_trail.Manage();
+   // --- Manage open positions (profit-step trailing) ---
    g_moneyTrail.Manage();
 
    // --- Equity and spread guards ---
@@ -297,4 +279,3 @@ void OnTick()
       LogMsg("ORDER REJECTED: " + execReason);
    }
 }
-

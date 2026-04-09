@@ -18,12 +18,10 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(!GetCachedRates(tf, 200, r) || ArraySize(r) < 150) return 0;
 
    // ATR-based tolerance
-   int hATR = iATR(_Symbol, tf, 14);
-   if(hATR < 0) return 0;
+   int hATR = IndGet_ATR(tf, 14);
+   if(hATR == INVALID_HANDLE) return 0;
    double atr[]; ArraySetAsSeries(atr, true);
-   bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
-   IndicatorRelease(hATR);
-   if(!ok || atr[0] <= 0.0) return 0;
+   if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
    // Harmonic ratios (e.g. 0.618) are dimensionless.  We use a fixed ±3% tolerance
    // as the standard harmonic validation zone (e.g. 0.618 ± 0.03 = 0.588..0.648).
    // ATR is used to guard against noise — if a leg is smaller than one ATR, skip.
@@ -97,4 +95,3 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "harmonic bearish completion"; }
    return MathMax(b, se);
 }
-

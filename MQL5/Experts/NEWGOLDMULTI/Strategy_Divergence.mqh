@@ -6,14 +6,9 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
    MqlRates r[]; ArraySetAsSeries(r, true);
    if(!GetCachedRates(tf, 100, r) || ArraySize(r) < 50) return 0;
 
-   int hRSI  = iRSI (_Symbol, tf, 14, PRICE_CLOSE);
-   int hMACD = iMACD(_Symbol, tf, 12, 26, 9, PRICE_CLOSE);
-   if(hRSI < 0 || hMACD < 0)
-   {
-      if(hRSI  >= 0) IndicatorRelease(hRSI);
-      if(hMACD >= 0) IndicatorRelease(hMACD);
-      return 0;
-   }
+   int hRSI  = IndGet_RSI(tf, 14);
+   int hMACD = IndGet_MACD(tf, 12, 26, 9);
+   if(hRSI == INVALID_HANDLE || hMACD == INVALID_HANDLE) return 0;
 
    double rsi[], macd[];
    ArraySetAsSeries(rsi,  true);
@@ -21,7 +16,6 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    bool ok = CopyBuffer(hRSI,  0, 0, 100, rsi)  >= 50
           && CopyBuffer(hMACD, 0, 0, 100, macd) >= 50;
-   IndicatorRelease(hRSI); IndicatorRelease(hMACD);
    if(!ok) return 0;
 
    int b = 0, se = 0;
@@ -68,4 +62,3 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "divergence sell"; }
    return MathMax(b, se);
 }
-

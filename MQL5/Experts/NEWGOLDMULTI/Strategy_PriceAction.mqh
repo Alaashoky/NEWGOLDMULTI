@@ -12,12 +12,10 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(!GetCachedRates(tf, 60, r) || ArraySize(r) < 30) return 0;
 
    // ATR for adaptive tolerances
-   int hATR = iATR(_Symbol, tf, 14);
-   if(hATR < 0) return 0;
+   int hATR = IndGet_ATR(tf, 14);
+   if(hATR == INVALID_HANDLE) return 0;
    double atr[]; ArraySetAsSeries(atr, true);
-   bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
-   IndicatorRelease(hATR);
-   if(!ok || atr[0] <= 0.0) return 0;
+   if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
    double atrVal = atr[0];
 
    int b = 0, se = 0;
@@ -72,4 +70,3 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "price action sell"; }
    return MathMax(b, se);
 }
-

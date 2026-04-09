@@ -4,13 +4,13 @@
 //------------------------------------------------------------------
 // CMoneyTrailing  (Profit-step trailing in account currency)
 //
-// Replaces the points-based trailing with a USD-denominated step
-// system that is independent of symbol price scale.
+// Implements step-based trailing stop denominated in account currency
+// (e.g. USD), independent of symbol price scale.
 //
 // Behaviour (BUY example):
-//   • Step 1  (profit ≥   1 × stepMoney) → SL moved to entry price
-//     (break-even).  An optional buffer can shift SL slightly above
-//     entry, but defaults to 0.
+//   • Step 1  (profit ≥   1 × stepMoney) → SL moved to entry price.
+//     This is the first ratchet step — it is part of the trailing
+//     mechanism, not a separate break-even feature.
 //   • Step N  (profit ≥   N × stepMoney) → SL is positioned to lock
 //     in (N-1) steps of profit: SL = entryPrice + (N-1) × stepPts.
 //

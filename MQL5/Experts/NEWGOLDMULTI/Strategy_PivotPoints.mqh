@@ -13,12 +13,10 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
    double r2 = pp + (H - L), s2 = pp - (H - L);
 
    // ATR-based proximity tolerance
-   int hATR = iATR(_Symbol, signalTf, 14);
-   if(hATR < 0) return 0;
+   int hATR = IndGet_ATR(signalTf, 14);
+   if(hATR == INVALID_HANDLE) return 0;
    double atr[]; ArraySetAsSeries(atr, true);
-   bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
-   IndicatorRelease(hATR);
-   if(!ok || atr[0] <= 0.0) return 0;
+   if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
    double prox = atr[0] * 0.5;   // within 50% of ATR = "near" a pivot
 
    MqlRates r[]; ArraySetAsSeries(r, true);
@@ -54,4 +52,3 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
       { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "pivot sell"; }
    return MathMax(b, se);
 }
-

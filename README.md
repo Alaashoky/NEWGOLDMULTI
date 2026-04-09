@@ -6,11 +6,16 @@ Unified **MQL5 multi-strategy EA** for `XAUUSD`/gold-style trading.
 
 - **VotingEngine**: consensus voting system — a trade is only placed when at
   least `InpMinVotes` strategies agree on the same direction.
-- **TrailingStop + Break-even**: automatic profit protection for all open
-  positions managed by this EA.
+- **Profit-step trailing (USD)**: automatic profit protection using a
+  step-based trailing stop denominated in account currency.
+- **Daily drawdown guard**: new-entry block when intra-day equity drop
+  reaches the configured threshold.
 - **Professional strategy rewrites**: all 14 strategy modules upgraded with
   ATR-based tolerances, proper swing-point detection, normalized signal
   strength (0–5 scale), and no hardcoded bar indices.
+- **Backtest performance**: indicator handles are created once and reused
+  for the entire session (handle pool in `StrategyTypes.mqh`), eliminating
+  per-tick/per-bar handle creation overhead.
 
 ---
 
@@ -19,11 +24,10 @@ Unified **MQL5 multi-strategy EA** for `XAUUSD`/gold-style trading.
 | File | Purpose |
 |---|---|
 | `NEWGOLDMULTI.mq5` | Main EA entry point |
-| `StrategyTypes.mqh` | Shared types, `SignalReset`, `SwingHigh`/`SwingLow` helpers, `GetCachedRates()` |
+| `StrategyTypes.mqh` | Shared types, `SignalReset`, `SwingHigh`/`SwingLow` helpers, `GetCachedRates()`, indicator handle pool |
 | `RiskManager.mqh` | Lot sizing, SL/TP, spread/equity guards, `CDailyDDGuard` |
 | `TradeGuard.mqh` | Order execution, one-bar duplicate prevention |
 | `VotingEngine.mqh` | Multi-strategy consensus voting |
-| `TrailingStop.mqh` | Points-based break-even + trailing stop management |
 | `PositionManager.mqh` | USD-based profit-step trailing (`CMoneyTrailing`) |
 | `Strategy_*.mqh` | 14 individual strategy modules (see below) |
 
@@ -93,26 +97,6 @@ tie-breaker between equal-strength signals.
 
 ---
 
-## Trailing stop / break-even (points-based)
-
-Managed by `TrailingStop.mqh`, applied on every tick to positions opened
-by this EA (magic-number scoped).
-
-| Input | Default | Description |
-|---|---|---|
-| `InpBEStartPts` | `200` | Points of floating profit before break-even SL is placed |
-| `InpBEBufferPts` | `50` | Extra points above/below entry for the break-even SL |
-| `InpTrailStartPts` | `400` | Points of floating profit before trailing begins |
-| `InpTrailDistPts` | `200` | Trailing distance from current price (points) |
-
-Set `InpBEStartPts = 0` to disable break-even.  
-Set `InpTrailStartPts = 0` to disable trailing.
-
-All values are in **`_Point` units** (e.g. for XAUUSD with 3-digit prices,
-1 pip ≈ 10 points; 200 points ≈ 20 pips).
-
----
-
 ## Profit-step trailing (USD / account currency)
 
 Managed by `PositionManager.mqh` (`CMoneyTrailing`), runs on every tick.
@@ -123,17 +107,15 @@ Managed by `PositionManager.mqh` (`CMoneyTrailing`), runs on every tick.
 | `InpTrailStepMoney` | `25.0` | Step size in account currency (USD) |
 
 **Behaviour:**  
-- When floating profit (P&L + swap + commission) reaches **1 × step** → SL moves
-  to entry price (break-even).  
-- Each additional **step** reached → SL advances to lock in **(N−1) × step** of
-  profit, where N is the current step count.  
+- When floating profit (P&L + swap + commission) reaches **1 × step** → SL
+  moves to entry price (first ratchet step).  
+- Each additional **step** reached → SL advances to lock in **(N−1) × step**
+  of profit, where N is the current step count.  
 - SL only ever moves in the favourable direction (ratchet guarantee).  
 - `SYMBOL_TRADE_STOPS_LEVEL` and `SYMBOL_TRADE_FREEZE_LEVEL` are respected;
   a skipped modification is logged to the Experts tab.
 
-*This system is independent of the points-based trailing above. Both can run
-simultaneously; the ratchet logic prevents any SL from moving against the
-position.*
+Set `InpUseProfitTrailMoney = false` to disable trailing entirely.
 
 ---
 
@@ -151,7 +133,7 @@ Managed by `CDailyDDGuard` inside `RiskManager.mqh`.
 - When `(dayStartEquity − currentEquity) / dayStartEquity × 100 ≥ InpMaxDailyDDPercent`,
   new trade entries are blocked and a log message is printed.  
 - The block resets **automatically** when the next broker day begins.  
-- Trailing stop / SL management continues running even when new entries are blocked.
+- Trailing SL management continues running even when new entries are blocked.
 
 ---
 
@@ -188,6 +170,22 @@ Provided by `RiskManager.mqh`:
 
 ## Changelog
 
+### v2.2 (2026-04-09)
+- **Removed break-even feature**: `TrailingStop.mqh` (points-based BE + trail)
+  deleted entirely.  The separate `InpBEStartPts`, `InpBEBufferPts`,
+  `InpTrailStartPts`, `InpTrailDistPts` inputs are removed from the UI.
+  The profit-step trailing in `PositionManager.mqh` already moves SL to
+  entry at step 1 as part of its normal ratchet — no separate BE setting
+  is needed.
+- **Backtest performance — indicator handle pool**: `StrategyTypes.mqh` now
+  provides `IndGet_ATR / IndGet_RSI / IndGet_MACD / IndGet_ADX /
+  IndGet_Stoch / IndGet_EMA / IndGet_BB` helpers that create indicator
+  handles lazily and cache them for the session lifetime.  All 9 strategy
+  modules that previously called `iXXX()` + `IndicatorRelease()` on every
+  bar have been updated to use the pool — eliminating repeated handle
+  creation/destruction overhead in the Strategy Tester.  `OnDeinit()` calls
+  `IndPoolReleaseAll()` to free all handles on shutdown.
+
 ### v2.1 (2026-04-09)
 - **Backtest performance**: added `GetCachedRates()` in `StrategyTypes.mqh` — all 14
   strategy modules share a single `CopyRates` call per (symbol, TF, bar) instead of
@@ -195,7 +193,7 @@ Provided by `RiskManager.mqh`:
   (guarded by `AllowSignalOnBar`).
 - **Profit-step trailing (USD)** via new `PositionManager.mqh` (`CMoneyTrailing`):
   - New inputs: `InpUseProfitTrailMoney` (default `true`), `InpTrailStepMoney` (default `$25`).
-  - SL moves to break-even at step 1, locks additional profit at each subsequent step.
+  - SL moves to entry at step 1, locks additional profit at each subsequent step.
   - Respects broker stop/freeze levels; logs every SL modification and any skip reason.
 - **Daily drawdown guard** via new `CDailyDDGuard` in `RiskManager.mqh`:
   - New inputs: `InpUseDailyDDGuard` (default `true`), `InpMaxDailyDDPercent` (default `5.0`).
@@ -228,4 +226,3 @@ Provided by `RiskManager.mqh`:
 
 ### v1.0
 - Initial port of 14 strategy modules from `mehdi-jahani/GoldTraderEA`.
-
