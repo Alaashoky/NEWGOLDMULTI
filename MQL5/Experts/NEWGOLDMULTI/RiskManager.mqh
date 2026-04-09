@@ -99,3 +99,74 @@ private:
       return NormalizeDouble(v, 2);
    }
 };
+
+//------------------------------------------------------------------
+// CDailyDDGuard — daily drawdown protection
+//
+// At the start of each broker day (server time) the equity is
+// captured.  Once the intra-day drawdown from that equity reaches
+// the configured threshold (default 5%), new trade entries are
+// blocked.  The block resets automatically at the next day.
+//
+// Integration:
+//   • Call DailyDDGuard.Update() on every tick (lightweight).
+//   • Gate new entries with DailyDDGuard.AllowNewTrade(reason).
+//   • Trailing stop management is intentionally NOT blocked.
+//------------------------------------------------------------------
+class CDailyDDGuard
+{
+private:
+   bool    m_enabled;
+   double  m_threshold;      // e.g. 5.0 %
+   double  m_dayStartEquity;
+   int     m_dayStartDay;    // MQL5 DayOfYear
+
+   int TodayDayOfYear()
+   {
+      MqlDateTime dt;
+      TimeToStruct(TimeCurrent(), dt);
+      return dt.day_of_year;
+   }
+
+public:
+   void Init(bool enabled, double thresholdPct)
+   {
+      m_enabled        = enabled;
+      m_threshold      = (thresholdPct > 0.0 ? thresholdPct : 5.0);
+      m_dayStartEquity = AccountInfoDouble(ACCOUNT_EQUITY);
+      m_dayStartDay    = TodayDayOfYear();
+   }
+
+   // Call every tick — resets the daily baseline when the day rolls over.
+   void Update()
+   {
+      if(!m_enabled) return;
+      int today = TodayDayOfYear();
+      if(today != m_dayStartDay)
+      {
+         m_dayStartEquity = AccountInfoDouble(ACCOUNT_EQUITY);
+         m_dayStartDay    = today;
+         Print(StringFormat("[DailyDDGuard] New day — baseline equity reset to %.2f",
+                            m_dayStartEquity));
+      }
+   }
+
+   // Returns true when a new entry is permitted; false + reason when blocked.
+   bool AllowNewTrade(string &reason)
+   {
+      if(!m_enabled) return true;
+      if(m_dayStartEquity <= 0.0) return true;
+
+      double eq = AccountInfoDouble(ACCOUNT_EQUITY);
+      double dd = 100.0 * (m_dayStartEquity - eq) / m_dayStartEquity;
+      if(dd >= m_threshold)
+      {
+         reason = StringFormat(
+            "daily drawdown %.2f%% >= limit %.2f%% (start=%.2f cur=%.2f)",
+            dd, m_threshold, m_dayStartEquity, eq);
+         return false;
+      }
+      return true;
+   }
+};
+

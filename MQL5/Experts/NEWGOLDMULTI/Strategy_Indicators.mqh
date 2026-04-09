@@ -4,7 +4,7 @@
 int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
 {
    MqlRates rates[]; ArraySetAsSeries(rates, true);
-   if(CopyRates(_Symbol, tf, 0, 50, rates) < 5) return 0;
+   if(!GetCachedRates(tf, 50, rates) || ArraySize(rates) < 5) return 0;
 
    int hRSI  = iRSI(_Symbol,  tf, 14, PRICE_CLOSE);
    int hMACD = iMACD(_Symbol, tf, 12, 26, 9, PRICE_CLOSE);

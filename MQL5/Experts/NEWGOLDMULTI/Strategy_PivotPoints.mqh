@@ -22,7 +22,7 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
    double prox = atr[0] * 0.5;   // within 50% of ATR = "near" a pivot
 
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, signalTf, 0, 3, r) < 2) return 0;
+   if(!GetCachedRates(signalTf, 3, r) || ArraySize(r) < 2) return 0;
 
    double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);

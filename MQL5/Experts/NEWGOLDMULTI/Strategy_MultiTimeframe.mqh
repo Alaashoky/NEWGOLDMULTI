@@ -11,7 +11,7 @@ int SigMultiTimeframe(StrategySignal &s)
    for(int i = 0; i < 3; i++)
    {
       MqlRates r[]; ArraySetAsSeries(r, true);
-      if(CopyRates(_Symbol, tfs[i], 0, 15, r) < 10) continue;
+      if(!GetCachedRates(tfs[i], 15, r) || ArraySize(r) < 10) continue;
 
       int hMA20 = iMA(_Symbol, tfs[i], 20, 0, MODE_EMA, PRICE_CLOSE);
       int hMA50 = iMA(_Symbol, tfs[i], 50, 0, MODE_EMA, PRICE_CLOSE);

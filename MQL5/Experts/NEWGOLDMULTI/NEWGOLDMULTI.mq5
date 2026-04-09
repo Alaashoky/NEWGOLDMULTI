@@ -1,5 +1,5 @@
 #property strict
-#property version   "2.00"
+#property version   "2.10"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"
@@ -7,6 +7,7 @@
 #include "TradeGuard.mqh"
 #include "VotingEngine.mqh"
 #include "TrailingStop.mqh"
+#include "PositionManager.mqh"
 
 #include "Strategy_Indicators.mqh"
 #include "Strategy_MACrossover.mqh"
@@ -72,7 +73,7 @@ input ENUM_TIMEFRAMES InpSRTF        = PERIOD_H1;
 input int InpIndicatorsMinVotes = 3;
 input int InpMAFast = 8, InpMASlow = 21, InpMALong = 200, InpMAMinConf = 2;
 
-// ===== Trailing Stop / Break-Even =====
+// ===== Trailing Stop / Break-Even (points-based) =====
 // All values are in _Point units.
 // InpBEStartPts  : points of floating profit before break-even SL is placed.
 //                  0 = disabled.  Default: 200 pts (≈20 pips for XAUUSD).
@@ -87,10 +88,28 @@ input double InpBEBufferPts   = 50;
 input double InpTrailStartPts = 400;
 input double InpTrailDistPts  = 200;
 
+// ===== Profit-Step Trailing (USD) =====
+// Currency-denominated step trailing independent of symbol price scale.
+// InpUseProfitTrailMoney : enable/disable this trailing system.
+// InpTrailStepMoney      : step size in account currency (default $25).
+//   Behaviour: when floating profit reaches N × step, SL is moved to
+//   lock in (N-1) × step of profit.  Step 1 = break-even (SL to entry).
+input bool   InpUseProfitTrailMoney = true;
+input double InpTrailStepMoney      = 25.0;
+
+// ===== Daily Drawdown Guard =====
+// InpUseDailyDDGuard    : enable/disable daily drawdown protection.
+// InpMaxDailyDDPercent  : max intra-day equity drawdown (%) before new
+//                         entries are blocked.  Resets automatically next day.
+input bool   InpUseDailyDDGuard    = true;
+input double InpMaxDailyDDPercent  = 5.0;
+
 // ===== Globals =====
 CRiskManager   g_risk;
 CTradeGuard    g_guard;
 CTrailingStop  g_trail;
+CMoneyTrailing g_moneyTrail;
+CDailyDDGuard  g_ddGuard;
 
 void LogMsg(string msg)
 {
@@ -126,12 +145,17 @@ int OnInit()
    g_trail.Init(InpMagicNumber, InpMaxSlippagePoints,
                 InpBEStartPts, InpBEBufferPts,
                 InpTrailStartPts, InpTrailDistPts);
+   g_moneyTrail.Init(InpMagicNumber, InpMaxSlippagePoints,
+                     InpUseProfitTrailMoney ? InpTrailStepMoney : 0.0);
+   g_ddGuard.Init(InpUseDailyDDGuard, InpMaxDailyDDPercent);
 
    LogMsg(StringFormat(
-      "Initialized | minVotes=%d BE=%g/%g Trail=%g/%g",
+      "Initialized | minVotes=%d BE=%g/%g Trail=%g/%g | MoneyTrail=%s step=$%.2f | DailyDD=%s limit=%.1f%%",
       InpMinVotes,
       InpBEStartPts, InpBEBufferPts,
-      InpTrailStartPts, InpTrailDistPts));
+      InpTrailStartPts, InpTrailDistPts,
+      InpUseProfitTrailMoney ? "ON" : "OFF", InpTrailStepMoney,
+      InpUseDailyDDGuard ? "ON" : "OFF", InpMaxDailyDDPercent));
    return INIT_SUCCEEDED;
 }
 
@@ -139,8 +163,12 @@ void OnTick()
 {
    if(!InpEnableTrading) return;
 
+   // --- Daily drawdown guard: update day baseline (lightweight) ---
+   g_ddGuard.Update();
+
    // --- Manage open positions (trailing stop / break-even) ---
    g_trail.Manage();
+   g_moneyTrail.Manage();
 
    // --- Equity and spread guards ---
    string reason = "";
@@ -149,6 +177,14 @@ void OnTick()
       LogMsg("Trading blocked: " + reason);
       return;
    }
+
+   // --- Daily drawdown check (blocks new entries only) ---
+   if(!g_ddGuard.AllowNewTrade(reason))
+   {
+      LogMsg("Trading blocked (daily DD): " + reason);
+      return;
+   }
+
    if(!g_risk.SpreadOk(reason))
    {
       LogMsg("Signal rejected: " + reason);

@@ -4,7 +4,7 @@
 int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 100, r) < 50) return 0;
+   if(!GetCachedRates(tf, 100, r) || ArraySize(r) < 50) return 0;
 
    int hRSI  = iRSI (_Symbol, tf, 14, PRICE_CLOSE);
    int hMACD = iMACD(_Symbol, tf, 12, 26, 9, PRICE_CLOSE);

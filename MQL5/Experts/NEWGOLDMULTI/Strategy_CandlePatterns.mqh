@@ -55,7 +55,7 @@ bool CP_BearEng(MqlRates &c, MqlRates &p)
 int SigCandlePatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 10, r) < 4) return 0;
+   if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 4) return 0;
 
    int b = 0, se = 0;
 

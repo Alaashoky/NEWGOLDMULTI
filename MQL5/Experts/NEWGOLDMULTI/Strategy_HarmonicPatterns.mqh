@@ -15,7 +15,7 @@
 int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(CopyRates(_Symbol, tf, 0, 200, r) < 150) return 0;
+   if(!GetCachedRates(tf, 200, r) || ArraySize(r) < 150) return 0;
 
    // ATR-based tolerance
    int hATR = iATR(_Symbol, tf, 14);
