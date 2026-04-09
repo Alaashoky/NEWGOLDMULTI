@@ -19,7 +19,7 @@ private:
    double     m_peakEquity;
 
 public:
-   void Init(RiskConfig cfg)
+   void Init(RiskConfig &cfg)
    {
       m_cfg = cfg;
       m_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);

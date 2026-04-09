@@ -5,7 +5,7 @@ int SigMACrossover(StrategySignal &s, ENUM_TIMEFRAMES tf, int fastP, int slowP, 
 {
    int hf=iMA(_Symbol,tf,fastP,0,MODE_EMA,PRICE_CLOSE), hs=iMA(_Symbol,tf,slowP,0,MODE_EMA,PRICE_CLOSE), hl=iMA(_Symbol,tf,longP,0,MODE_EMA,PRICE_CLOSE);
    if(hf<0||hs<0||hl<0) return 0;
-   double f[3],sl[3],lg[2]; ArraySetAsSeries(f,true);ArraySetAsSeries(sl,true);ArraySetAsSeries(lg,true);
+   double f[],sl[],lg[]; ArraySetAsSeries(f,true);ArraySetAsSeries(sl,true);ArraySetAsSeries(lg,true);
    MqlRates r[]; ArraySetAsSeries(r,true);
    bool ok=CopyRates(_Symbol,tf,0,longP+5,r)>=longP+2 && CopyBuffer(hf,0,0,3,f)>=3 && CopyBuffer(hs,0,0,3,sl)>=3 && CopyBuffer(hl,0,0,2,lg)>=1;
    IndicatorRelease(hf);IndicatorRelease(hs);IndicatorRelease(hl);
