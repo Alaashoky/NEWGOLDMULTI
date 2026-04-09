@@ -107,7 +107,7 @@ int OnInit()
 
    if(InpMinVotes < 1 || InpMinVotes > 14)
    {
-      Print("[NEWGOLDMULTI] InpMinVotes must be 1..14, got ", InpMinVotes);
+      Print("[NEWGOLDMULTI] InpMinVotes must be 1..14 (total number of strategy modules), got ", InpMinVotes);
       return INIT_PARAMETERS_INCORRECT;
    }
 

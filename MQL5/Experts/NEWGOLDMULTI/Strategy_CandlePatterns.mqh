@@ -76,11 +76,12 @@ int SigCandlePatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(CP_BullEng(r[1], r[2])) b++;
    if(CP_BearEng(r[1], r[2])) se++;
 
-   // Inside-bar breakout (r[1] inside r[2])
-   if(r[1].high < r[2].high && r[1].low > r[2].low)
+   // Inside-bar breakout: r[2] = mother bar, r[1] = inside bar, confirmed by r[1] close
+   // (r[1] is already closed, avoiding forming-bar trigger issues)
+   if(r[2].high < r[3].high && r[2].low > r[3].low)
    {
-      if(r[0].close > r[2].high) b++;   // breakout above mother bar
-      if(r[0].close < r[2].low)  se++;  // breakout below mother bar
+      if(r[1].close > r[3].high) b++;   // r[1] closed above mother bar's high
+      if(r[1].close < r[3].low)  se++;  // r[1] closed below mother bar's low
    }
 
    // Three-bar patterns

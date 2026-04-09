@@ -24,11 +24,11 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    bool ok = (CopyBuffer(hATR, 0, 0, 1, atr) >= 1);
    IndicatorRelease(hATR);
    if(!ok || atr[0] <= 0.0) return 0;
-   // Convert ATR from price units to a ratio relative to the XA price swing.
-   // A tolerance of 0.0002 per point of ATR means: for a 100-point ATR bar,
-   // the ratio tolerance is 0.02 (2%), which matches typical harmonic pattern
-   // validation zones (e.g., 0.618 ± 0.02 = 0.598..0.638).
-   double tol = atr[0] / SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 0.0002;
+   // Harmonic ratios (e.g. 0.618) are dimensionless.  We use a fixed ±3% tolerance
+   // as the standard harmonic validation zone (e.g. 0.618 ± 0.03 = 0.588..0.648).
+   // ATR is used to guard against noise — if a leg is smaller than one ATR, skip.
+   static const double HP_RATIO_TOL = 0.03;
+   double atrVal = atr[0];
 
    // Collect 5 alternating swing points (X, A, B, C, D pattern)
    // We look for alternating high/low pivots using 3-bar-side strength
@@ -60,15 +60,17 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    double BC = MathAbs(pivVal[3] - pivVal[2]);
    double CD = MathAbs(pivVal[4] - pivVal[3]);
    if(XA <= 0.0 || AB <= 0.0 || BC <= 0.0 || CD <= 0.0) return 0;
+   // Skip if the XA leg is too small (likely noise — require at least one ATR)
+   if(XA < atrVal) return 0;
 
    double rAB = AB / XA;
    double rBC = BC / AB;
    double rCD = CD / BC;
 
    // Harmonic ratio validation (Gartley/Bat/Butterfly/Crab approximation)
-   bool abOk  = (rAB >= 0.382 - tol && rAB <= 0.886 + tol);
-   bool bcOk  = (rBC >= 0.382 - tol && rBC <= 0.886 + tol);
-   bool cdOk  = (rCD >= 1.13  - tol && rCD <= 3.618 + tol);
+   bool abOk  = (rAB >= 0.382 - HP_RATIO_TOL && rAB <= 0.886 + HP_RATIO_TOL);
+   bool bcOk  = (rBC >= 0.382 - HP_RATIO_TOL && rBC <= 0.886 + HP_RATIO_TOL);
+   bool cdOk  = (rCD >= 1.13  - HP_RATIO_TOL && rCD <= 3.618 + HP_RATIO_TOL);
    if(!abOk || !bcOk || !cdOk) return 0;
 
    int b = 0, se = 0;

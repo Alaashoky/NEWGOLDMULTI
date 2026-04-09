@@ -76,8 +76,7 @@ public:
          if(pType == POSITION_TYPE_BUY)
          {
             double profitPts = (bid - openPx) / pt;
-            double newSL     = 0.0;
-
+            double newSL     = 0.0;   // 0 = "no candidate yet"
             // --- Break-even ---
             if(m_beStart > 0.0 && profitPts >= m_beStart)
             {

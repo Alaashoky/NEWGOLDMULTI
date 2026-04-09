@@ -54,19 +54,27 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(sh1 >= 0 && sh2 >= 0 && MathAbs(r[sh1].high - r[sh2].high) <= tol)
    {
       // Neckline = lowest low between the two tops
-      double neck = r[sh1 + 1].low;
-      for(int i = sh1 + 1; i < sh2 && i < ArraySize(r); i++)
-         if(r[i].low < neck) neck = r[i].low;
-      if(r[0].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;   // confirmed break below neckline
+      int neckStart = sh1 + 1;
+      if(neckStart < ArraySize(r))
+      {
+         double neck = r[neckStart].low;
+         for(int i = neckStart; i < sh2 && i < ArraySize(r); i++)
+            if(r[i].low < neck) neck = r[i].low;
+         if(r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;   // confirmed closed bar below neckline
+      }
    }
 
    // --- Double Bottom ---
    if(sl1 >= 0 && sl2 >= 0 && MathAbs(r[sl1].low - r[sl2].low) <= tol)
    {
-      double neck = r[sl1 + 1].high;
-      for(int i = sl1 + 1; i < sl2 && i < ArraySize(r); i++)
-         if(r[i].high > neck) neck = r[i].high;
-      if(r[0].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;    // confirmed break above neckline
+      int neckStart = sl1 + 1;
+      if(neckStart < ArraySize(r))
+      {
+         double neck = r[neckStart].high;
+         for(int i = neckStart; i < sl2 && i < ArraySize(r); i++)
+            if(r[i].high > neck) neck = r[i].high;
+         if(r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;    // confirmed closed bar above neckline
+      }
    }
 
    // --- Head & Shoulders (bearish) ---
@@ -85,10 +93,14 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
       && r[sh2].high > r[sh1].high && r[sh2].high > r[sh3].high  // head is highest
       && MathAbs(r[sh1].high - r[sh3].high) <= tol)              // shoulders roughly equal
       {
-         double neck = r[sh1 + 1].low;
-         for(int i = sh1; i < sh2 && i < ArraySize(r); i++)
-            if(r[i].low < neck) neck = r[i].low;
-         if(r[0].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
+         int neckStart = sh1 + 1;
+         if(neckStart < ArraySize(r))
+         {
+            double neck = r[neckStart].low;
+            for(int i = neckStart; i < sh2 && i < ArraySize(r); i++)
+               if(r[i].low < neck) neck = r[i].low;
+            if(r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
+         }
       }
    }
 
@@ -107,10 +119,14 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
       && r[sl2].low < r[sl1].low && r[sl2].low < r[sl3].low   // head is lowest
       && MathAbs(r[sl1].low - r[sl3].low) <= tol)             // shoulders roughly equal
       {
-         double neck = r[sl1 + 1].high;
-         for(int i = sl1; i < sl2 && i < ArraySize(r); i++)
-            if(r[i].high > neck) neck = r[i].high;
-         if(r[0].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
+         int neckStart = sl1 + 1;
+         if(neckStart < ArraySize(r))
+         {
+            double neck = r[neckStart].high;
+            for(int i = neckStart; i < sl2 && i < ArraySize(r); i++)
+               if(r[i].high > neck) neck = r[i].high;
+            if(r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
+         }
       }
    }
 
