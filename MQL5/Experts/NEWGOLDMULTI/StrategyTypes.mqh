@@ -129,6 +129,10 @@ void IndPoolAdd(const string &key, int handle)
       _g_indPool[_g_indPool_n].handle = handle;
       _g_indPool_n++;
    }
+   else
+   {
+      Print(StringFormat("[IndPool] WARNING: pool full (%d slots). Handle for '%s' will not be cached — consider increasing IND_POOL_SIZE.", IND_POOL_SIZE, key));
+   }
 }
 
 void IndPoolReleaseAll()
