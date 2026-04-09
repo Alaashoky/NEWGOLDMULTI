@@ -21,7 +21,7 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
       return 0;
    }
 
-   double rsi[3], mm[3], ms[3], adx[2], sk[3], sd[3], mf[3], msl[3], bup[3], bmid[3], blo[3];
+   double rsi[], mm[], ms[], adx[], sk[], sd[], mf[], msl[], bup[], bmid[], blo[];
    ArraySetAsSeries(rsi,true);ArraySetAsSeries(mm,true);ArraySetAsSeries(ms,true);ArraySetAsSeries(adx,true);
    ArraySetAsSeries(sk,true);ArraySetAsSeries(sd,true);ArraySetAsSeries(mf,true);ArraySetAsSeries(msl,true);
    ArraySetAsSeries(bup,true);ArraySetAsSeries(bmid,true);ArraySetAsSeries(blo,true);

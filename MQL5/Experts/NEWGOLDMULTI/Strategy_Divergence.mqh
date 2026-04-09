@@ -6,7 +6,7 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
    MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tf,0,80,r)<30) return 0;
    int hRSI=iRSI(_Symbol,tf,14,PRICE_CLOSE), hMACD=iMACD(_Symbol,tf,12,26,9,PRICE_CLOSE);
    if(hRSI<0||hMACD<0) return 0;
-   double rsi[80], macd[80]; ArraySetAsSeries(rsi,true);ArraySetAsSeries(macd,true);
+   double rsi[], macd[]; ArraySetAsSeries(rsi,true);ArraySetAsSeries(macd,true);
    bool ok=CopyBuffer(hRSI,0,0,80,rsi)>=30 && CopyBuffer(hMACD,0,0,80,macd)>=30; IndicatorRelease(hRSI);IndicatorRelease(hMACD); if(!ok) return 0;
 
    int b=0,se=0;

@@ -12,7 +12,7 @@ int SigMultiTimeframe(StrategySignal &s)
       MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tfs[i],0,15,r)<10) continue;
       int h20=iMA(_Symbol,tfs[i],20,0,MODE_EMA,PRICE_CLOSE), h50=iMA(_Symbol,tfs[i],50,0,MODE_EMA,PRICE_CLOSE);
       if(h20<0||h50<0) continue;
-      double ma20[2],ma50[2]; ArraySetAsSeries(ma20,true);ArraySetAsSeries(ma50,true);
+      double ma20[],ma50[]; ArraySetAsSeries(ma20,true);ArraySetAsSeries(ma50,true);
       bool ok=CopyBuffer(h20,0,0,2,ma20)>=1&&CopyBuffer(h50,0,0,2,ma50)>=1; IndicatorRelease(h20);IndicatorRelease(h50); if(!ok) continue;
 
       if(ma20[0]>ma50[0]&&r[0].close>ma20[0]) b+=weights[i];

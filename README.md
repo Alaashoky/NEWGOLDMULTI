@@ -105,6 +105,16 @@ In MT5 Strategy Tester:
    - individual strategy: enable one toggle, disable others
    - combined mode: enable all toggles
 
+## Changelog
+
+### Compilation fixes (2026-04-09)
+- **RiskManager.mqh**: Changed `Init(RiskConfig cfg)` → `Init(RiskConfig &cfg)` — MQL5 requires structs/objects to be passed by reference.
+- **NEWGOLDMULTI.mq5**: Replaced `StrategySignal signals[STRATEGY_COUNT]` with a literal size `signals[14]` — MQL5 array dimensions must be compile-time integer literals, not `const int` variables.
+- **Strategy_Indicators.mqh**: Changed all fixed-size indicator copy buffers (`rsi[3]`, `mm[3]`, `adx[2]`, etc.) to dynamic arrays — `ArraySetAsSeries` and `CopyBuffer` require dynamic (unsized) arrays.
+- **Strategy_MACrossover.mqh**: Changed `f[3]`, `sl[3]`, `lg[2]` to dynamic arrays for the same reason.
+- **Strategy_MultiTimeframe.mqh**: Changed `ma20[2]`, `ma50[2]` to dynamic arrays.
+- **Strategy_Divergence.mqh**: Changed `rsi[80]`, `macd[80]` to dynamic arrays.
+
 ## Assumptions and ambiguity notes
 
 Because source modules contain mixed rigor and some ambiguous heuristics, this port applies **equivalent modular logic** and preserves the same strategy categories/signaling intent. Pattern-based modules (`Elliott/Harmonic/Chart/Wolfe/Time`) use deterministic approximations suitable for compile-ready automated execution and coordinated multi-strategy operation.
