@@ -1,36 +1,68 @@
 #property strict
 #include "StrategyTypes.mqh"
 
-const double TA_FIB_RATIO = 1.618;
-
+//------------------------------------------------------------------
+// Time Analysis — session-based filter
+//
+// Only participates in voting during active trading sessions
+// (London and/or New York).  Returns SIGNAL_NONE outside those
+// windows so it never adds noise when markets are quiet.
+//
+// Strength is built from multiple confirming factors:
+//   1. Consecutive-bar momentum on closed bars.
+//   2. Strong-body candle in the direction.
+//   3. London–NY overlap bonus (highest quality window).
+//
+// Session times assume broker server is at GMT+0 to GMT+2.
+// Adjust via InpTimeGMTOffset if your broker differs.
+//------------------------------------------------------------------
 int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlDateTime t; TimeToStruct(TimeCurrent(), t);
-   MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tf,0,120,r)<100) return 0;
 
-   int b=0,se=0;
-   // Key hours from source style (GMT broker time dependent)
-   if(t.hour==8||t.hour==12||t.hour==14||t.hour==16||t.hour==20) { b++; se++; }
+   MqlRates r[]; ArraySetAsSeries(r, true);
+   if(CopyRates(_Symbol, tf, 0, 10, r) < 5) return 0;
 
-   // Monday/Friday significance
-   if(t.day_of_week==1) b++;
-   if(t.day_of_week==5) se++;
+   // Session windows (broker server time)
+   bool londonActive = (t.hour >= 7  && t.hour < 16);   // 07:00–15:59
+   bool nyActive     = (t.hour >= 12 && t.hour < 21);   // 12:00–20:59
 
-   // Repeated cycle approximation (interval similarities)
-   int idxH1=10, idxH2=30, idxH3=50;
-   long d1=(long)(r[idxH1].time-r[idxH2].time), d2=(long)(r[idxH2].time-r[idxH3].time);
-   if(MathAbs(d1-d2)<3600) { b++; se++; }
+   // Abstain outside main sessions
+   if(!londonActive && !nyActive) return 0;
 
-   // Fib-time inspired check based on recent swing duration
-   long base=(long)(r[10].time-r[30].time);
-   long proj=(long)(base*TA_FIB_RATIO);
-   if(MathAbs((long)(r[0].time-r[10].time)-proj)<3600) { b++; se++; }
+   // Avoid the high-risk Friday afternoon close
+   if(t.day_of_week == 5 && t.hour >= 18) return 0;
 
-   // assign direction by latest candle momentum
-   if(b>0||se>0)
+   int b = 0, se = 0;
+
+   // Momentum: 2 consecutive closed bars (r[1] and r[2])
+   if(r[1].close > r[2].close) b++; else if(r[1].close < r[2].close) se++;
+   if(r[2].close > r[3].close) b++; else if(r[2].close < r[3].close) se++;
+
+   // Bar-body quality of the last closed bar
+   double body  = MathAbs(r[1].close - r[1].open);
+   double range = r[1].high - r[1].low;
+   if(range > 0.0 && body >= 0.5 * range)
    {
-      if(r[0].close>=r[1].close){ s.direction=SIGNAL_BUY; s.strength=b; s.reason="time window bullish bias"; }
-      else { s.direction=SIGNAL_SELL; s.strength=se; s.reason="time window bearish bias"; }
+      if(r[1].close > r[1].open) b++;
+      else                       se++;
    }
-   return MathMax(b,se);
+
+   // London–NY overlap: amplify the leading side (+1 to winner)
+   if(londonActive && nyActive)
+   {
+      if(b > se) b++;
+      else if(se > b) se++;
+   }
+
+   // Normalize to 0..5
+   b  = MathMin(b,  5);
+   se = MathMin(se, 5);
+
+   if(b > se && b > 0)
+      { s.direction = SIGNAL_BUY;  s.strength = b;  s.reason = "time session bullish"; }
+   else if(se > b && se > 0)
+      { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "time session bearish"; }
+   return MathMax(b, se);
 }
+

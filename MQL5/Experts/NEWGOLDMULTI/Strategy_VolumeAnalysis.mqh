@@ -1,29 +1,54 @@
 #property strict
 #include "StrategyTypes.mqh"
 
-const double VA_SPIKE_MULTIPLIER = 2.0;
-
 int SigVolumeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
-   MqlRates r[]; ArraySetAsSeries(r,true); if(CopyRates(_Symbol,tf,0,60,r)<30) return 0;
-   long v[]; ArraySetAsSeries(v,true); if(CopyTickVolume(_Symbol,tf,0,60,v)<30) return 0;
+   MqlRates r[]; ArraySetAsSeries(r, true);
+   if(CopyRates(_Symbol, tf, 0, 60, r) < 30) return 0;
 
-   int b=0,se=0;
-   // Rising volume with bullish closes
-   if(v[0]>v[1]&&v[1]>v[2]&&r[0].close>r[0].open&&r[1].close>r[1].open) b++;
-   // Rising volume with bearish closes
-   if(v[0]>v[1]&&v[1]>v[2]&&r[0].close<r[0].open&&r[1].close<r[1].open) se++;
+   long vol[]; ArraySetAsSeries(vol, true);
+   if(CopyTickVolume(_Symbol, tf, 0, 60, vol) < 30) return 0;
 
-   // Volume spike near breakout
-   double avg=0.0; for(int i=5;i<25;i++) avg+=(double)v[i]; avg/=20.0;
-   if(v[0] > avg*VA_SPIKE_MULTIPLIER && r[0].close>r[10].high) b++;
-   if(v[0] > avg*VA_SPIKE_MULTIPLIER && r[0].close<r[10].low ) se++;
+   // Rolling average volume (bars 5..24, skip most-recent 5 for stability)
+   double avgVol = 0.0;
+   for(int i = 5; i < 25; i++) avgVol += (double)vol[i];
+   avgVol /= 20.0;
+   if(avgVol <= 0.0) return 0;
 
-   // Simple OBV-like direction
-   long obv=0; for(int i=20;i>=1;i--){ if(r[i-1].close>r[i].close) obv+=v[i-1]; else if(r[i-1].close<r[i].close) obv-=v[i-1]; }
-   if(obv>0) b++; else if(obv<0) se++;
+   int b = 0, se = 0;
 
-   if(b>0&&b>=se){s.direction=SIGNAL_BUY;s.strength=b;s.reason="volume bullish";}
-   else if(se>0&&se>b){s.direction=SIGNAL_SELL;s.strength=se;s.reason="volume bearish";}
-   return MathMax(b,se);
+   // Relative volume of current bar
+   double relVol = (double)vol[0] / avgVol;
+
+   // Climax / spike volume with directional confirmation
+   if(relVol >= 2.0 && r[0].close > r[0].open) b++;
+   if(relVol >= 2.0 && r[0].close < r[0].open) se++;
+
+   // Consecutive rising volume with consistent direction (trend continuation)
+   if(vol[0] > vol[1] && vol[1] > vol[2]
+   && r[0].close > r[0].open && r[1].close > r[1].open) b++;
+   if(vol[0] > vol[1] && vol[1] > vol[2]
+   && r[0].close < r[0].open && r[1].close < r[1].open) se++;
+
+   // OBV net direction over last 20 bars
+   double obv = 0.0;
+   for(int i = 1; i < 20; i++)
+   {
+      if(r[i-1].close > r[i].close)      obv += (double)vol[i-1];
+      else if(r[i-1].close < r[i].close) obv -= (double)vol[i-1];
+   }
+   // Significant net OBV = more than 2x average per bar over 20 bars
+   if(obv >  avgVol * 2.0) b++;
+   if(obv < -avgVol * 2.0) se++;
+
+   // Normalize to 0..5
+   b  = MathMin(b,  5);
+   se = MathMin(se, 5);
+
+   if(b > 0 && b >= se)
+      { s.direction = SIGNAL_BUY;  s.strength = b;  s.reason = "volume bullish"; }
+   else if(se > 0 && se > b)
+      { s.direction = SIGNAL_SELL; s.strength = se; s.reason = "volume bearish"; }
+   return MathMax(b, se);
 }
+
