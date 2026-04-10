@@ -1,5 +1,5 @@
 #property strict
-#property version   "3.10"
+#property version   "3.20"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"
@@ -33,8 +33,8 @@ input bool   InpVerboseLogs              = false;
 input bool   InpUseFixedLot              = true;
 input double InpFixedLot                 = 0.01;
 input double InpRiskPercent              = 1.0;
-input double InpStopLossPoints           = 800;
-input double InpTakeProfitPoints         = 1200;
+input double InpStopLossPoints           = 500;
+input double InpTakeProfitPoints         = 2000;
 input double InpMaxDrawdownPercent       = 20.0;
 input double InpMaxSpreadPoints          = 80;
 input int    InpMaxSlippagePoints        = 20;
@@ -43,7 +43,7 @@ input int    InpMaxSlippagePoints        = 20;
 // InpMinVotes: minimum number of strategies that must agree on
 //   the same direction before a trade is placed (default 3).
 //   Range: 1..14.  Higher = more selective / fewer trades.
-input int  InpMinVotes = 3;
+input int  InpMinVotes = 7;
 
 // ===== Strategy Toggles + Priority =====
 // Enable/disable each strategy independently.
@@ -70,7 +70,7 @@ input ENUM_TIMEFRAMES InpSRTF        = PERIOD_H1;
 
 // ===== Specific Strategy Params =====
 input int InpIndicatorsMinVotes = 3;
-input int InpMAFast = 8, InpMASlow = 21, InpMALong = 200, InpMAMinConf = 2;
+input int InpMAFast = 8, InpMASlow = 21, InpMALong = 200, InpMAMinConf = 3;
 
 // ===== Profit-Step Trailing (USD) =====
 // Currency-denominated step trailing independent of symbol price scale.
