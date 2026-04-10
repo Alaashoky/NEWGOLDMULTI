@@ -1,5 +1,5 @@
 #property strict
-#property version   "3.00"
+#property version   "3.10"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"
@@ -146,10 +146,18 @@ void OnTick()
 {
    if(!InpEnableTrading) return;
 
-   // --- Daily drawdown guard: update day baseline (lightweight) ---
+   // --- Daily drawdown guard: update day baseline (lightweight, every tick) ---
    g_ddGuard.Update();
 
-   // --- Manage open positions (profit-step trailing) ---
+   // --- New-bar gate: all heavy work runs once per bar only ---
+   static datetime s_lastBar = 0;
+   datetime curBarTime = iTime(_Symbol, InpSignalTF, 0);
+   if(curBarTime == s_lastBar) return;   // same bar — nothing to do
+   s_lastBar = curBarTime;               // update IMMEDIATELY so we never process same bar twice
+
+   // --- Everything below runs ONCE per new bar ---
+
+   // Manage open positions (profit-step trailing)
    g_moneyTrail.Manage();
 
    // --- Equity and spread guards ---
@@ -173,18 +181,10 @@ void OnTick()
       return;
    }
 
-   // --- New-bar gate: skip strategy evaluation on non-new bars (performance) ---
-   static datetime s_lastSignalBar = 0;
-   datetime curBarTime = iTime(_Symbol, InpSignalTF, 0);
-   if(curBarTime == s_lastSignalBar) return;   // same bar — guards already ran, no new signal
-
    // --- One-bar signal guard (prevents re-entry on the same bar) ---
    datetime barTime = curBarTime;
    if(!g_guard.AllowSignalOnBar(barTime, reason))
-   {
-      // Trailing stop still runs, just skip new signal generation
       return;
-   }
 
    if(!InpAllowMultiplePositions && g_guard.HasOpenPosition())
    {
@@ -276,7 +276,6 @@ void OnTick()
    if(g_guard.Execute(dir, lots, sl, tp, cmt, execReason))
    {
       g_guard.MarkSignalBar(barTime);
-      s_lastSignalBar = curBarTime;
       LogMsg(StringFormat("ORDER EXECUTED | winner=%s dir=%d lots=%.2f sl=%.5f tp=%.5f",
          winner, (int)dir, lots, sl, tp));
    }
