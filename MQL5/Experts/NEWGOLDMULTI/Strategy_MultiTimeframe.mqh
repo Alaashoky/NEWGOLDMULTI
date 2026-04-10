@@ -8,6 +8,11 @@ int SigMultiTimeframe(StrategySignal &s)
    int             weights[3] = {1, 2, 3};
    int b = 0, se = 0;
 
+   double ma20[], ma50[], adx[];
+   ArraySetAsSeries(ma20, true);
+   ArraySetAsSeries(ma50, true);
+   ArraySetAsSeries(adx,  true);
+
    for(int i = 0; i < 3; i++)
    {
       MqlRates r[]; ArraySetAsSeries(r, true);
@@ -17,11 +22,6 @@ int SigMultiTimeframe(StrategySignal &s)
       int hMA50 = IndGet_EMA(tfs[i], 50);
       int hADX  = IndGet_ADX(tfs[i], 14);
       if(hMA20 == INVALID_HANDLE || hMA50 == INVALID_HANDLE || hADX == INVALID_HANDLE) continue;
-
-      double ma20[], ma50[], adx[];
-      ArraySetAsSeries(ma20, true);
-      ArraySetAsSeries(ma50, true);
-      ArraySetAsSeries(adx,  true);
 
       bool ok = CopyBuffer(hMA20, 0, 0, 2, ma20) >= 1
              && CopyBuffer(hMA50, 0, 0, 2, ma50) >= 1

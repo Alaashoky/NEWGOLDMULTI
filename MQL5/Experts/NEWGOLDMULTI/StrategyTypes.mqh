@@ -103,7 +103,7 @@ bool GetCachedRates(ENUM_TIMEFRAMES tf, int needed, MqlRates &rates[])
 //
 // Call IndPoolReleaseAll() inside OnDeinit() to free handles.
 //------------------------------------------------------------------
-#define IND_POOL_SIZE 64
+#define IND_POOL_SIZE 96
 
 struct _IndPoolEntry
 {

@@ -1,5 +1,5 @@
 #property strict
-#property version   "2.20"
+#property version   "3.00"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"
@@ -27,7 +27,7 @@
 input bool   InpEnableTrading            = true;
 input long   InpMagicNumber              = 5102026;
 input bool   InpAllowMultiplePositions   = false;
-input bool   InpVerboseLogs              = true;
+input bool   InpVerboseLogs              = false;
 
 // ===== Risk Inputs =====
 input bool   InpUseFixedLot              = true;
@@ -173,8 +173,13 @@ void OnTick()
       return;
    }
 
+   // --- New-bar gate: skip strategy evaluation on non-new bars (performance) ---
+   static datetime s_lastSignalBar = 0;
+   datetime curBarTime = iTime(_Symbol, InpSignalTF, 0);
+   if(curBarTime == s_lastSignalBar) return;   // same bar — guards already ran, no new signal
+
    // --- One-bar signal guard (prevents re-entry on the same bar) ---
-   datetime barTime = iTime(_Symbol, InpSignalTF, 0);
+   datetime barTime = curBarTime;
    if(!g_guard.AllowSignalOnBar(barTime, reason))
    {
       // Trailing stop still runs, just skip new signal generation
@@ -271,6 +276,7 @@ void OnTick()
    if(g_guard.Execute(dir, lots, sl, tp, cmt, execReason))
    {
       g_guard.MarkSignalBar(barTime);
+      s_lastSignalBar = curBarTime;
       LogMsg(StringFormat("ORDER EXECUTED | winner=%s dir=%d lots=%.2f sl=%.5f tp=%.5f",
          winner, (int)dir, lots, sl, tp));
    }
