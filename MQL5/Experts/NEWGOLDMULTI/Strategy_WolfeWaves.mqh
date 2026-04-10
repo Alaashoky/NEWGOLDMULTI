@@ -75,7 +75,7 @@ int SigWolfeWaves(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    // --- Bearish Wolfe: ascending swing highs (1 < 3 < 5) ---
    // swH[0] = point 5 (most recent, highest), swH[2] = point 3, swH[4] = point 1
-   if(nSL >= 5 && nSH >= 5
+   if(nSH >= 5
    && r[swH[0]].high > r[swH[2]].high  // point 5 is highest
    && r[swH[2]].high > r[swH[4]].high  // point 3 above point 1
    && nSL >= 1 && r[0].close < r[swL[0]].low)  // confirmed breakdown

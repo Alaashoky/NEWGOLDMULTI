@@ -73,10 +73,12 @@ int SigCandlePatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    {
       if(CP_BullPin(r[1]))  b++;
       if(CP_BearPin(r[1]))  se++;
-      // Context filter: Hammer only in downtrend context (close < prior close)
-      if(CP_Hammer(r[1])   && r[1].close < r[2].close) b++;
-      // Context filter: Shooting Star only in uptrend context (close > prior close)
-      if(CP_Shooting(r[1]) && r[1].close > r[2].close) se++;
+      // Context filter: Hammer only in downtrend context
+      // Check that the bars BEFORE the Hammer show declining prices (r[2] > r[3] declining)
+      if(CP_Hammer(r[1])   && r[2].close < r[3].close) b++;
+      // Context filter: Shooting Star only in uptrend context
+      // Check that the bars BEFORE the Shooting Star show rising prices (r[2] < r[3] rising)
+      if(CP_Shooting(r[1]) && r[2].close > r[3].close) se++;
    }
 
    // Doji at swing extremes — direction by following bar
