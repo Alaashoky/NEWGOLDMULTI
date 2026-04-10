@@ -1,5 +1,5 @@
 #property strict
-#property version   "3.20"
+#property version   "4.00"
 #property description "NEWGOLDMULTI - Unified multi-strategy EA with voting consensus engine"
 
 #include "StrategyTypes.mqh"

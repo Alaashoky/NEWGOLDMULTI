@@ -20,9 +20,9 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    int b = 0, se = 0;
 
-   // Range high/low of last 10 closed bars
+   // Range high/low of last 20 closed bars (ATR-normalised range)
    double hi = r[1].high, lo = r[1].low;
-   for(int i = 2; i <= 10; i++)
+   for(int i = 2; i <= 20; i++)
    {
       if(r[i].high > hi) hi = r[i].high;
       if(r[i].low  < lo) lo = r[i].low;
@@ -30,8 +30,39 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    // Clean breakout of range (price beyond extremes by at least 10% of ATR)
    double brkTol = atrVal * BREAKOUT_ATR_TOL;
-   if(r[0].close > hi + brkTol) b++;
-   if(r[0].close < lo - brkTol) se++;
+   if(r[0].close > hi + brkTol)
+   {
+      b++;
+      // Volume spike confirmation: breakout bar volume > 1.5× average of prior 10 bars
+      long vol[]; ArraySetAsSeries(vol, true);
+      if(CopyTickVolume(_Symbol, tf, 0, 12, vol) >= 11)
+      {
+         double avgV = 0.0;
+         for(int i = 1; i <= 10; i++) avgV += (double)vol[i];
+         avgV /= 10.0;
+         if(avgV > 0.0 && (double)vol[0] > 1.5 * avgV) b++;
+      }
+   }
+   if(r[0].close < lo - brkTol)
+   {
+      se++;
+      // Volume spike confirmation for bearish breakout
+      long vol[]; ArraySetAsSeries(vol, true);
+      if(CopyTickVolume(_Symbol, tf, 0, 12, vol) >= 11)
+      {
+         double avgV = 0.0;
+         for(int i = 1; i <= 10; i++) avgV += (double)vol[i];
+         avgV /= 10.0;
+         if(avgV > 0.0 && (double)vol[0] > 1.5 * avgV) se++;
+      }
+   }
+
+   // Inside-bar breakout: r[1] is fully inside r[2]
+   if(r[1].high <= r[2].high && r[1].low >= r[2].low)
+   {
+      if(r[0].close > r[1].high) b++;   // bullish breakout of inside bar
+      if(r[0].close < r[1].low)  se++;  // bearish breakout of inside bar
+   }
 
    // Higher-lows structure (3 swing lows rising) — uptrend confirmation
    int swL[3]; int nL = 0;
@@ -55,9 +86,9 @@ int SigPriceAction(StrategySignal &s, ENUM_TIMEFRAMES tf)
    }
    if(nH >= 3 && r[swH[0]].high < r[swH[1]].high && r[swH[1]].high < r[swH[2]].high) se++;
 
-   // Bullish support bounce: bullish bar near 10-bar low (within 20% ATR)
+   // Bullish support bounce: bullish bar near 20-bar low (within 20% ATR)
    if(r[0].close > r[0].open && r[0].low <= lo + atrVal * SR_PROXIMITY_ATR) b++;
-   // Bearish resistance rejection: bearish bar near 10-bar high (within 20% ATR)
+   // Bearish resistance rejection: bearish bar near 20-bar high (within 20% ATR)
    if(r[0].close < r[0].open && r[0].high >= hi - atrVal * SR_PROXIMITY_ATR) se++;
 
    // Normalize to 0..5

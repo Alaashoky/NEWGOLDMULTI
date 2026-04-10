@@ -10,10 +10,12 @@ static const double NECKLINE_BREAK_ATR = 0.15;
 //
 // Patterns detected:
 //   Double Bottom / Double Top — two swing lows/highs at similar
-//     price with ATR-based tolerance + confirmed neckline break.
+//     price with ATR-based tolerance + confirmed neckline break
+//     + volume confirmation (breakout bar volume > 1.2× avg 10 bars).
 //   Wedge / Triangle breakout — consecutive compression then break.
 //   Inverse Head & Shoulders / Head & Shoulders — three-swing
-//     approximation (lowest/highest central swing).
+//     approximation (lowest/highest central swing) with neckline
+//     slope validation (must be nearly flat ±0.5×ATR over pattern).
 //------------------------------------------------------------------
 int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
@@ -26,6 +28,16 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
    double atrVal = atr[0];
    double tol = atrVal * 0.5; // similar level = within 50% ATR
+
+   // Volume data for breakout confirmation
+   long vol[]; ArraySetAsSeries(vol, true);
+   bool hasVol = (CopyTickVolume(_Symbol, tf, 0, 12, vol) >= 11);
+   double avgVol10 = 0.0;
+   if(hasVol)
+   {
+      for(int i = 1; i <= 10; i++) avgVol10 += (double)vol[i];
+      avgVol10 /= 10.0;
+   }
 
    int b = 0, se = 0;
 
@@ -58,7 +70,12 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          double neck = r[neckStart].low;
          for(int i = neckStart; i < sh2 && i < ArraySize(r); i++)
             if(r[i].low < neck) neck = r[i].low;
-         if(r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;   // confirmed closed bar below neckline
+         if(r[1].close < neck - atrVal * NECKLINE_BREAK_ATR)
+         {
+            // Volume confirmation: breakout bar volume > 1.2× avg 10 bars
+            bool volOk = (!hasVol || avgVol10 <= 0.0 || (double)vol[1] > 1.2 * avgVol10);
+            if(volOk) se++;
+         }
       }
    }
 
@@ -71,7 +88,11 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          double neck = r[neckStart].high;
          for(int i = neckStart; i < sl2 && i < ArraySize(r); i++)
             if(r[i].high > neck) neck = r[i].high;
-         if(r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;    // confirmed closed bar above neckline
+         if(r[1].close > neck + atrVal * NECKLINE_BREAK_ATR)
+         {
+            bool volOk = (!hasVol || avgVol10 <= 0.0 || (double)vol[1] > 1.2 * avgVol10);
+            if(volOk) b++;
+         }
       }
    }
 
@@ -94,10 +115,19 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          int neckStart = sh1 + 1;
          if(neckStart < ArraySize(r))
          {
-            double neck = r[neckStart].low;
+            // Neckline: line from left-shoulder trough to right-shoulder trough
+            double neckLeft  = r[neckStart].low;
+            int    neckLBar  = neckStart;
             for(int i = neckStart; i < sh2 && i < ArraySize(r); i++)
-               if(r[i].low < neck) neck = r[i].low;
-            if(r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
+               if(r[i].low < neckLeft) { neckLeft = r[i].low; neckLBar = i; }
+            double neckRight = r[sh1 + 1].low;
+            for(int i = sh1 + 1; i < sh1 + (sh2 - sh1) && i < ArraySize(r); i++)
+               if(r[i].low < neckRight) neckRight = r[i].low;
+
+            // Neckline slope validation: must be nearly flat (within ±0.5×ATR)
+            bool neckFlat = (MathAbs(neckLeft - neckRight) <= atrVal * 0.5);
+            double neck = neckLeft;
+            if(neckFlat && r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
          }
       }
    }
@@ -120,10 +150,16 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          int neckStart = sl1 + 1;
          if(neckStart < ArraySize(r))
          {
-            double neck = r[neckStart].high;
+            double neckLeft  = r[neckStart].high;
             for(int i = neckStart; i < sl2 && i < ArraySize(r); i++)
-               if(r[i].high > neck) neck = r[i].high;
-            if(r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
+               if(r[i].high > neckLeft) neckLeft = r[i].high;
+            double neckRight = r[sl1 + 1].high;
+            for(int i = sl1 + 1; i < sl1 + (sl2 - sl1) && i < ArraySize(r); i++)
+               if(r[i].high > neckRight) neckRight = r[i].high;
+
+            bool neckFlat = (MathAbs(neckLeft - neckRight) <= atrVal * 0.5);
+            double neck = neckLeft;
+            if(neckFlat && r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
          }
       }
    }

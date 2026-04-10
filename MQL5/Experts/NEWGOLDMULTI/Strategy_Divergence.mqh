@@ -28,28 +28,46 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
    int sh1 = SwingHigh(r, 2, nBars / 2,     2);   // more recent
    int sh2 = SwingHigh(r, sh1 + 3, nBars,   2);   // older
 
-   // Bullish RSI divergence: price lower low, RSI higher low
+   // Regular bullish RSI divergence: price lower low, RSI higher low
+   // Confirmation candle: current bar must close bullish
    if(sl1 >= 0 && sl2 >= 0
    && r[sl1].low  < r[sl2].low
-   && rsi[sl1]    > rsi[sl2])
+   && rsi[sl1]    > rsi[sl2]
+   && r[0].close  > r[0].open)
       b++;
 
-   // Bullish MACD divergence: price lower low, MACD higher low
+   // Regular bullish MACD divergence: price lower low, MACD higher low
    if(sl1 >= 0 && sl2 >= 0
    && r[sl1].low  < r[sl2].low
-   && macd[sl1]   > macd[sl2])
+   && macd[sl1]   > macd[sl2]
+   && r[0].close  > r[0].open)
       b++;
 
-   // Bearish RSI divergence: price higher high, RSI lower high
+   // Regular bearish RSI divergence: price higher high, RSI lower high
+   // Confirmation candle: current bar must close bearish
    if(sh1 >= 0 && sh2 >= 0
    && r[sh1].high > r[sh2].high
-   && rsi[sh1]    < rsi[sh2])
+   && rsi[sh1]    < rsi[sh2]
+   && r[0].close  < r[0].open)
       se++;
 
-   // Bearish MACD divergence: price higher high, MACD lower high
+   // Regular bearish MACD divergence: price higher high, MACD lower high
    if(sh1 >= 0 && sh2 >= 0
    && r[sh1].high > r[sh2].high
-   && macd[sh1]   < macd[sh2])
+   && macd[sh1]   < macd[sh2]
+   && r[0].close  < r[0].open)
+      se++;
+
+   // Hidden bullish divergence: price higher low, RSI lower low → continuation
+   if(sl1 >= 0 && sl2 >= 0
+   && r[sl1].low  > r[sl2].low
+   && rsi[sl1]    < rsi[sl2])
+      b++;
+
+   // Hidden bearish divergence: price lower high, RSI higher high → continuation
+   if(sh1 >= 0 && sh2 >= 0
+   && r[sh1].high < r[sh2].high
+   && rsi[sh1]    > rsi[sh2])
       se++;
 
    // Normalize to 0..5

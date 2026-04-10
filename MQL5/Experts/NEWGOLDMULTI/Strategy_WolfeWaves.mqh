@@ -8,9 +8,12 @@
 //   lows (1-3-5 converging to a low at point 5).  Target = above
 //   the 1-4 line projection.  Confirmed when price breaks above
 //   the most-recent swing high.
+//   EPA (Expected Price at Arrival) bonus: if the 1-4 line projects
+//   a target above current price, award an extra +1 bull vote.
 //
 // Bearish Wolfe Wave: mirrored (ascending highs and lows, point 5
 //   at a high, confirmed break below most-recent swing low).
+//   EPA bonus: if target is below current price, award +1 bear vote.
 //
 // Uses proper swing detection (SwingHigh/SwingLow from
 // StrategyTypes.mqh) instead of hardcoded bar indices.
@@ -52,15 +55,44 @@ int SigWolfeWaves(StrategySignal &s, ENUM_TIMEFRAMES tf)
    && r[swL[0]].low < r[swL[2]].low   // point 5 is lowest (most recent)
    && r[swL[2]].low < r[swL[4]].low   // point 3 below point 1 → descending lows
    && nSH >= 1 && r[0].close > r[swH[0]].high)  // confirmed breakout above recent high
+   {
       b = 2;
+
+      // EPA line: project the 1-4 line (points at swL[4] and swL[1]) to current bar
+      // Point 1 = swL[4], Point 4 = swL[1]
+      int   p1bar = swL[4], p4bar = swL[1];
+      double p1price = r[p1bar].low, p4price = r[p4bar].low;
+      int   barSpan = p1bar - p4bar;  // bars from point4 to point1 (p1bar > p4bar in series)
+      if(barSpan > 0)
+      {
+         // EPA slope (price change per bar, moving forward in time = decreasing bar index)
+         double epaSlope = (p4price - p1price) / (double)barSpan;
+         // Project to current bar (bar index 0 is barSpan bars ahead of p4bar)
+         double epaTarget = p4price + epaSlope * (double)p4bar;
+         if(epaTarget > r[0].close) b++;  // target above current price → upside potential
+      }
+   }
 
    // --- Bearish Wolfe: ascending swing highs (1 < 3 < 5) ---
    // swH[0] = point 5 (most recent, highest), swH[2] = point 3, swH[4] = point 1
-   if(nSH >= 5
+   if(nSL >= 5 && nSH >= 5
    && r[swH[0]].high > r[swH[2]].high  // point 5 is highest
    && r[swH[2]].high > r[swH[4]].high  // point 3 above point 1
    && nSL >= 1 && r[0].close < r[swL[0]].low)  // confirmed breakdown
+   {
       se = 2;
+
+      // EPA line for bearish: project the 1-4 line of swing highs
+      int   p1bar = swH[4], p4bar = swH[1];
+      double p1price = r[p1bar].high, p4price = r[p4bar].high;
+      int   barSpan = p1bar - p4bar;
+      if(barSpan > 0)
+      {
+         double epaSlope = (p4price - p1price) / (double)barSpan;
+         double epaTarget = p4price + epaSlope * (double)p4bar;
+         if(epaTarget < r[0].close) se++;  // target below current price → downside potential
+      }
+   }
 
    // Normalize to 0..5
    b  = MathMin(b,  5);

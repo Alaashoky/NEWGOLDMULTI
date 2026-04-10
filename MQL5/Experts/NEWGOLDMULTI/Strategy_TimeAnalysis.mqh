@@ -11,7 +11,8 @@
 // Strength is built from multiple confirming factors:
 //   1. Consecutive-bar momentum on closed bars.
 //   2. Strong-body candle in the direction.
-//   3. London–NY overlap bonus (highest quality window).
+//   3. London–NY overlap bonus (highest quality window) — requires
+//      at least 2 out of 3 momentum signals to agree.
 //
 // Session times assume broker server is at GMT+0 to GMT+2.
 // Adjust via InpTimeGMTOffset if your broker differs.
@@ -20,8 +21,23 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlDateTime t; TimeToStruct(TimeCurrent(), t);
 
+   // Asian session avoidance: no trading during quiet Asian hours
+   if(t.hour >= 0 && t.hour < 7) return 0;
+
    MqlRates r[]; ArraySetAsSeries(r, true);
    if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 5) return 0;
+
+   // News/spike filter: if current bar range > 3×ATR → abnormal bar, skip
+   int hATR = IndGet_ATR(tf, 14);
+   if(hATR != INVALID_HANDLE)
+   {
+      double atr[]; ArraySetAsSeries(atr, true);
+      if(CopyBuffer(hATR, 0, 0, 1, atr) >= 1 && atr[0] > 0.0)
+      {
+         double currentRange = r[0].high - r[0].low;
+         if(currentRange > 3.0 * atr[0]) return 0;
+      }
+   }
 
    // Session windows — high-momentum open hours only (broker server time)
    bool londonActive  = (t.hour >= 7  && t.hour < 12);   // 07:00–11:59 (London Open momentum)
@@ -49,11 +65,16 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
       else                       se++;
    }
 
-   // London–NY overlap (13:00–15:59): amplify the leading side (+1 to winner)
+   // London–NY overlap (13:00–15:59): award bonus only when at least 2 of 3
+   // momentum signals agree in the leading direction
    if(overlapActive)
    {
-      if(b > se) b++;
-      else if(se > b) se++;
+      int momentumSignals = b + se > 0 ? MathMax(b, se) : 0;
+      if(momentumSignals >= 2)
+      {
+         if(b > se) b++;
+         else if(se > b) se++;
+      }
    }
 
    // Normalize to 0..5

@@ -11,6 +11,22 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
    double r1 = 2.0*pp - L,  s1 = 2.0*pp - H;
    double r2 = pp + (H - L), s2 = pp - (H - L);
 
+   // Camarilla R3/S3 using previous day's OHLC
+   double r3C = C + (H - L) * 1.1 / 4.0;
+   double s3C = C - (H - L) * 1.1 / 4.0;
+
+   // Weekly pivot calculation using previous week's OHLC
+   MqlRates w[]; ArraySetAsSeries(w, true);
+   bool hasWeekly = GetCachedRates(PERIOD_W1, 3, w) && ArraySize(w) >= 2;
+   double ppW = 0.0, r1W = 0.0, s1W = 0.0;
+   if(hasWeekly)
+   {
+      double Hw = w[1].high, Lw = w[1].low, Cw = w[1].close;
+      ppW = (Hw + Lw + Cw) / 3.0;
+      r1W = 2.0 * ppW - Lw;
+      s1W = 2.0 * ppW - Hw;
+   }
+
    // ATR-based proximity tolerance
    int hATR = IndGet_ATR(signalTf, 14);
    if(hATR == INVALID_HANDLE) return 0;
@@ -25,13 +41,24 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
    int b = 0, se = 0;
 
-   // Price near support pivots with bullish bar
+   // Price near daily support pivots with bullish bar
    if((MathAbs(bid - s1) <= prox || MathAbs(bid - s2) <= prox)
    && r[0].close >= r[0].open) b++;
 
-   // Price near resistance pivots with bearish bar
+   // Price near daily resistance pivots with bearish bar
    if((MathAbs(ask - r1) <= prox || MathAbs(ask - r2) <= prox)
    && r[0].close <= r[0].open) se++;
+
+   // Weekly support/resistance levels
+   if(hasWeekly)
+   {
+      if(MathAbs(bid - s1W) <= prox && r[0].close >= r[0].open) b++;
+      if(MathAbs(ask - r1W) <= prox && r[0].close <= r[0].open) se++;
+   }
+
+   // Camarilla S3 (support) and R3 (resistance) proximity
+   if(MathAbs(bid - s3C) <= prox && r[0].close >= r[0].open) b++;
+   if(MathAbs(ask - r3C) <= prox && r[0].close <= r[0].open) se++;
 
    // Pivot point crossover (direction change through PP)
    if(r[0].close > pp && r[1].close <= pp) b++;

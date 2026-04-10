@@ -41,6 +41,28 @@ int SigVolumeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(obv >  avgVol * 2.0) b++;
    if(obv < -avgVol * 2.0) se++;
 
+   // 20-bar VWAP approximation: sum(typical * vol) / sum(vol)
+   double sumTV = 0.0, sumV = 0.0;
+   for(int i = 0; i < 20; i++)
+   {
+      double typical = (r[i].high + r[i].low + r[i].close) / 3.0;
+      sumTV += typical * (double)vol[i];
+      sumV  += (double)vol[i];
+   }
+   if(sumV > 0.0)
+   {
+      double vwap = sumTV / sumV;
+      if(r[0].close > vwap) b++;
+      if(r[0].close < vwap) se++;
+   }
+
+   // Volume dry-up reversal: 2 consecutive low-volume bars after a trend → exhaustion
+   if((double)vol[0] < 0.5 * avgVol && (double)vol[1] < 0.5 * avgVol)
+   {
+      if(r[0].close > r[0].open) b++;   // bullish close after volume dry-up
+      if(r[0].close < r[0].open) se++;  // bearish close after volume dry-up
+   }
+
    // Normalize to 0..5
    b  = MathMin(b,  5);
    se = MathMin(se, 5);

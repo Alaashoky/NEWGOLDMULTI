@@ -6,8 +6,10 @@
 // Uses proper swing high/low detection to identify:
 //   Bullish: 3 rising swing lows (higher lows = impulsive structure)
 //            + price above most-recent swing high (wave 5 / breakout)
+//            + Fibonacci ratio bonus: Wave3 > 1.618 × Wave1
 //   Bearish: 3 falling swing highs (lower highs)
 //            + price below most-recent swing low
+//            + Fibonacci ratio bonus: mirror logic
 //
 // This is a simplified, deterministic approximation — not a full
 // Elliott wave counter.  Clearly documented as such.
@@ -37,6 +39,16 @@ int SigElliottWaves(StrategySignal &s, ENUM_TIMEFRAMES tf)
       // Extra confirmation: recent close above the most-recent swing high
       int sh1 = SwingHigh(r, 2, sl[0] - 1, 2);
       if(sh1 >= 0 && r[0].close > r[sh1].high) b++;
+
+      // Fibonacci ratio bonus: find swing high between sl[1] and sl[0] for Wave1/Wave3
+      int midH = SwingHigh(r, sl[0] + 1, sl[1] - 1, 2);
+      if(midH >= 0)
+      {
+         double wave1 = r[midH].high - r[sl[1]].low;
+         double wave3 = (sh1 >= 0) ? (r[sh1].high - r[sl[0]].low) : 0.0;
+         // Wave3 > Wave1 is basic Elliott rule; bonus if Wave3 > 1.618 × Wave1
+         if(wave1 > 0.0 && wave3 > 1.618 * wave1) b++;
+      }
    }
 
    // --- Bearish impulse: 3 falling swing highs ---
@@ -55,6 +67,15 @@ int SigElliottWaves(StrategySignal &s, ENUM_TIMEFRAMES tf)
       se++;
       int sl1 = SwingLow(r, 2, sh[0] - 1, 2);
       if(sl1 >= 0 && r[0].close < r[sl1].low) se++;
+
+      // Fibonacci ratio bonus for bearish: find swing low between sh[1] and sh[0]
+      int midL = SwingLow(r, sh[0] + 1, sh[1] - 1, 2);
+      if(midL >= 0)
+      {
+         double wave1b = r[sh[1]].high - r[midL].low;
+         double wave3b = (sl1 >= 0) ? (r[sh[0]].high - r[sl1].low) : 0.0;
+         if(wave1b > 0.0 && wave3b > 1.618 * wave1b) se++;
+      }
    }
 
    // Normalize to 0..5
