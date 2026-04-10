@@ -50,8 +50,12 @@ int SigIndicators(StrategySignal &s, ENUM_TIMEFRAMES tf, int minVotes)
    if(sk[0] > sd[0] && sk[1] <= sd[1] && sk[0] < 80) buy++;
    if(sk[0] < sd[0] && sk[1] >= sd[1] && sk[0] > 20) sell++;
 
-   // ADX confirms trend strength (counts for both sides equally)
-   if(adx[0] > 25) { buy++; sell++; }
+   // ADX confirms trend strength (confirms the side with more votes)
+   if(adx[0] > 25)
+   {
+      if(buy > sell)       buy++;
+      else if(sell > buy)  sell++;
+   }
 
    // Fast EMA crosses slow EMA
    if(mf[0] > msl[0] && mf[1] <= msl[1]) buy++;

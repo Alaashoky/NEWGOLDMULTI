@@ -5,9 +5,8 @@ int SigPivotPoints(StrategySignal &s, ENUM_TIMEFRAMES signalTf)
 {
    // Previous day's OHLC for classic pivot point calculation
    MqlRates d[]; ArraySetAsSeries(d, true);
-   if(CopyRates(_Symbol, PERIOD_D1, 1, 2, d) < 1) return 0;
-
-   double H = d[0].high, L = d[0].low, C = d[0].close;
+   if(!GetCachedRates(PERIOD_D1, 3, d) || ArraySize(d) < 2) return 0;
+   double H = d[1].high, L = d[1].low, C = d[1].close;   // d[1] = previous completed day
    double pp = (H + L + C) / 3.0;
    double r1 = 2.0*pp - L,  s1 = 2.0*pp - H;
    double r2 = pp + (H - L), s2 = pp - (H - L);

@@ -4,7 +4,7 @@
 int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(!GetCachedRates(tf, 100, r) || ArraySize(r) < 50) return 0;
+   if(!GetCachedRates(tf, 50, r) || ArraySize(r) < 30) return 0;
 
    int hRSI  = IndGet_RSI(tf, 14);
    int hMACD = IndGet_MACD(tf, 12, 26, 9);
@@ -14,12 +14,12 @@ int SigDivergence(StrategySignal &s, ENUM_TIMEFRAMES tf)
    ArraySetAsSeries(rsi,  true);
    ArraySetAsSeries(macd, true);
 
-   bool ok = CopyBuffer(hRSI,  0, 0, 100, rsi)  >= 50
-          && CopyBuffer(hMACD, 0, 0, 100, macd) >= 50;
+   bool ok = CopyBuffer(hRSI,  0, 0, 50, rsi)  >= 30
+          && CopyBuffer(hMACD, 0, 0, 50, macd) >= 30;
    if(!ok) return 0;
 
    int b = 0, se = 0;
-   int nBars = 80;
+   int nBars = 40;
 
    // Find two recent swing lows (price) using 2-bar-each-side strength
    int sl1 = SwingLow(r,  2, nBars / 2,     2);   // more recent
