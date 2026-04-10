@@ -23,9 +23,10 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
    MqlRates r[]; ArraySetAsSeries(r, true);
    if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 5) return 0;
 
-   // Session windows (broker server time)
-   bool londonActive = (t.hour >= 7  && t.hour < 16);   // 07:00–15:59
-   bool nyActive     = (t.hour >= 12 && t.hour < 21);   // 12:00–20:59
+   // Session windows — high-momentum open hours only (broker server time)
+   bool londonActive  = (t.hour >= 7  && t.hour < 12);   // 07:00–11:59 (London Open momentum)
+   bool nyActive      = (t.hour >= 13 && t.hour < 18);   // 13:00–17:59 (NY Open momentum)
+   bool overlapActive = (t.hour >= 13 && t.hour < 16);   // 13:00–15:59 (true London-NY overlap)
 
    // Abstain outside main sessions
    if(!londonActive && !nyActive) return 0;
@@ -48,8 +49,8 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
       else                       se++;
    }
 
-   // London–NY overlap: amplify the leading side (+1 to winner)
-   if(londonActive && nyActive)
+   // London–NY overlap (13:00–15:59): amplify the leading side (+1 to winner)
+   if(overlapActive)
    {
       if(b > se) b++;
       else if(se > b) se++;

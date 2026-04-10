@@ -68,41 +68,54 @@ ENUM_SIGNAL_DIR VotingResolve(StrategySignal &signals[], int count,
    bool buyOk  = (buyVotes  >= minVotes);
    bool sellOk = (sellVotes >= minVotes);
 
-   if(!buyOk && !sellOk) { winner = "no consensus";    return SIGNAL_NONE; }
+   // Determine raw winning direction
+   ENUM_SIGNAL_DIR rawDir = SIGNAL_NONE;
+   string rawWinner = "";
 
-   if( buyOk && !sellOk)
-   {
-      winner = (topBuyIdx  >= 0 ? signals[topBuyIdx].name  : "buy-consensus");
-      return SIGNAL_BUY;
-   }
-   if(!buyOk &&  sellOk)
-   {
-      winner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-consensus");
-      return SIGNAL_SELL;
-   }
+   if(!buyOk && !sellOk) { winner = "no consensus"; return SIGNAL_NONE; }
 
-   // Both sides reached minVotes — tie-break by strength then vote count
-   if(buyStr > sellStr)
+   if(buyOk && !sellOk)
    {
-      winner = (topBuyIdx  >= 0 ? signals[topBuyIdx].name  : "buy-strength");
-      return SIGNAL_BUY;
+      rawDir    = SIGNAL_BUY;
+      rawWinner = (topBuyIdx >= 0 ? signals[topBuyIdx].name : "buy-consensus");
    }
-   if(sellStr > buyStr)
+   else if(!buyOk && sellOk)
    {
-      winner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-strength");
-      return SIGNAL_SELL;
+      rawDir    = SIGNAL_SELL;
+      rawWinner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-consensus");
    }
-   if(buyVotes > sellVotes)
+   else
    {
-      winner = (topBuyIdx  >= 0 ? signals[topBuyIdx].name  : "buy-votes");
-      return SIGNAL_BUY;
-   }
-   if(sellVotes > buyVotes)
-   {
-      winner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-votes");
-      return SIGNAL_SELL;
+      // Both sides reached minVotes — tie-break by strength then vote count
+      if(buyStr > sellStr)
+      { rawDir = SIGNAL_BUY;  rawWinner = (topBuyIdx  >= 0 ? signals[topBuyIdx].name  : "buy-strength"); }
+      else if(sellStr > buyStr)
+      { rawDir = SIGNAL_SELL; rawWinner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-strength"); }
+      else if(buyVotes > sellVotes)
+      { rawDir = SIGNAL_BUY;  rawWinner = (topBuyIdx  >= 0 ? signals[topBuyIdx].name  : "buy-votes"); }
+      else if(sellVotes > buyVotes)
+      { rawDir = SIGNAL_SELL; rawWinner = (topSellIdx >= 0 ? signals[topSellIdx].name : "sell-votes"); }
+      else
+      { winner = "vote-tie-cancel"; return SIGNAL_NONE; }
    }
 
-   winner = "vote-tie-cancel";
-   return SIGNAL_NONE;
+   // --- Mandatory MultiTimeframe trend filter ---
+   // If MTF is enabled and disagrees with the winning direction → cancel the trade.
+   for(int i = 0; i < count; i++)
+   {
+      if(!signals[i].enabled) continue;
+      if(signals[i].name != "MultiTimeframe") continue;
+      if(signals[i].direction != SIGNAL_NONE && signals[i].direction != rawDir)
+      {
+         winner = "mtf-trend-conflict";
+         if(verbose)
+            Print("[VotingEngine] Trade cancelled: MTF conflict (MTF=",
+                  (int)signals[i].direction, " vs winner=", (int)rawDir, ")");
+         return SIGNAL_NONE;
+      }
+      break;
+   }
+
+   winner = rawWinner;
+   return rawDir;
 }
