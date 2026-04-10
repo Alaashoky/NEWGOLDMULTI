@@ -146,8 +146,6 @@ public:
       {
          m_dayStartEquity = AccountInfoDouble(ACCOUNT_EQUITY);
          m_dayStartDay    = today;
-         Print(StringFormat("[DailyDDGuard] New day — baseline equity reset to %.2f",
-                            m_dayStartEquity));
       }
    }
 

@@ -59,6 +59,7 @@ public:
    void Manage()
    {
       if(!m_active) return;
+      if(PositionsTotal() == 0) return;
 
       double pt     = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
       int    stpLvl = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
@@ -108,31 +109,14 @@ public:
 
             // Broker stop-level check: SL must be at least stpLvl below bid
             if(newSL > bid - minDist)
-            {
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u BUY: newSL=%.5f violates stop level (bid=%.5f minDist=%.5f) — skipped",
-                  ticket, newSL, bid, minDist));
                continue;
-            }
 
             // Freeze-level check
             if(frzLvl > 0 && curSL > 0.0
                && MathAbs(bid - curSL) <= (double)frzLvl * pt)
-            {
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u BUY: position frozen (frzLvl=%d) — skipped",
-                  ticket, frzLvl));
                continue;
-            }
 
-            if(m_trade.PositionModify(ticket, newSL, curTP))
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u BUY SL moved: %.5f→%.5f (step %d, profit=%.2f)",
-                  ticket, curSL, newSL, steps, profit));
-            else
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u BUY modify failed retcode=%d",
-                  ticket, m_trade.ResultRetcode()));
+            m_trade.PositionModify(ticket, newSL, curTP);
          }
          else if(pType == POSITION_TYPE_SELL)
          {
@@ -144,31 +128,14 @@ public:
 
             // Broker stop-level check: SL must be at least stpLvl above ask
             if(newSL < ask + minDist)
-            {
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u SELL: newSL=%.5f violates stop level (ask=%.5f minDist=%.5f) — skipped",
-                  ticket, newSL, ask, minDist));
                continue;
-            }
 
             // Freeze-level check
             if(frzLvl > 0 && curSL > 0.0
                && MathAbs(ask - curSL) <= (double)frzLvl * pt)
-            {
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u SELL: position frozen (frzLvl=%d) — skipped",
-                  ticket, frzLvl));
                continue;
-            }
 
-            if(m_trade.PositionModify(ticket, newSL, curTP))
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u SELL SL moved: %.5f→%.5f (step %d, profit=%.2f)",
-                  ticket, curSL, newSL, steps, profit));
-            else
-               Print(StringFormat(
-                  "[MoneyTrailing] ticket=%I64u SELL modify failed retcode=%d",
-                  ticket, m_trade.ResultRetcode()));
+            m_trade.PositionModify(ticket, newSL, curTP);
          }
       }
    }
