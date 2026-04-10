@@ -55,18 +55,35 @@ bool CP_BearEng(MqlRates &c, MqlRates &p)
 int SigCandlePatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
    MqlRates r[]; ArraySetAsSeries(r, true);
-   if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 4) return 0;
+   if(!GetCachedRates(tf, 10, r) || ArraySize(r) < 5) return 0;
+
+   // ATR-based candle size filter: skip patterns where bar range < 0.3 × ATR
+   int hATR = IndGet_ATR(tf, 14);
+   if(hATR == INVALID_HANDLE) return 0;
+   double atr[]; ArraySetAsSeries(atr, true);
+   if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
+   double atrVal      = atr[0];
+   double minBarRange = atrVal * 0.3;
 
    int b = 0, se = 0;
 
-   // Single-bar patterns
-   if(CP_BullPin(r[1]))  b++;
-   if(CP_BearPin(r[1]))  se++;
-   if(CP_Hammer(r[1]))   b++;
-   if(CP_Shooting(r[1])) se++;
+   // Single-bar patterns (only count when bar range is significant)
+   double range1 = r[1].high - r[1].low;
+   if(range1 >= minBarRange)
+   {
+      if(CP_BullPin(r[1]))  b++;
+      if(CP_BearPin(r[1]))  se++;
+      // Context filter: Hammer only in downtrend context
+      // Check that the bars BEFORE the Hammer show declining prices (r[2] > r[3] declining)
+      if(CP_Hammer(r[1])   && r[2].close < r[3].close) b++;
+      // Context filter: Shooting Star only in uptrend context
+      // Check that the bars BEFORE the Shooting Star show rising prices (r[2] < r[3] rising)
+      if(CP_Shooting(r[1]) && r[2].close > r[3].close) se++;
+   }
 
    // Doji at swing extremes — direction by following bar
-   if(CP_Doji(r[2]))
+   double range2 = r[2].high - r[2].low;
+   if(range2 >= minBarRange && CP_Doji(r[2]))
    {
       if(r[1].close > r[2].high) b++;
       if(r[1].close < r[2].low)  se++;
@@ -85,14 +102,14 @@ int SigCandlePatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    }
 
    // Three-bar patterns
-   // Morning star approximation
+   // Morning Star: bearish bar, small body bar, bullish bar closing above midpoint of bar 1
    if(r[3].close < r[3].open
    && MathAbs(r[2].close - r[2].open) < MathAbs(r[3].close - r[3].open) * 0.5
    && r[1].close > r[1].open
    && r[1].close > (r[3].open + r[3].close) * 0.5)
       b++;
 
-   // Evening star approximation
+   // Evening Star: bullish bar, small body bar, bearish bar closing below midpoint of bar 1
    if(r[3].close > r[3].open
    && MathAbs(r[2].close - r[2].open) < MathAbs(r[3].close - r[3].open) * 0.5
    && r[1].close < r[1].open

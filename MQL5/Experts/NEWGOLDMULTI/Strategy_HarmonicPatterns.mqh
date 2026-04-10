@@ -5,12 +5,15 @@
 // Harmonic Pattern approximation (XABCD structure)
 //
 // Uses 5 swing pivots identified by the SwingHigh/SwingLow helpers.
-// Ratios are validated against Gartley / Bat / Butterfly / Crab
-// Fibonacci zones.  ATR-based tolerance adapts to current volatility.
+// Per-pattern XAD ratio validation instead of a single range.
+// ATR-based tolerance adapts to current volatility.
 //
-// NOTE: This is a simplified approximation.  It does not validate
-// all harmonic rules rigorously (e.g. precise BC ratio ranges per
-// pattern type) but is deterministic and consistent.
+// Pattern XAD ratios (D relative to X, measured as |XD|/|XA|):
+//   Gartley Bull : XAD ∈ [0.75, 0.85]  (ideal 0.786)
+//   Bat Bull     : XAD ∈ [0.82, 0.92]  (ideal 0.886)
+//   Butterfly Bull: XAD ∈ [1.20, 1.32] (ideal 1.272)
+//   Crab Bull    : XAD ∈ [1.55, 1.72]  (ideal 1.618)
+//   Bear versions: same XAD ranges but D is above X (inverted direction)
 //------------------------------------------------------------------
 int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
 {
@@ -22,10 +25,6 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    if(hATR == INVALID_HANDLE) return 0;
    double atr[]; ArraySetAsSeries(atr, true);
    if(CopyBuffer(hATR, 0, 0, 1, atr) < 1 || atr[0] <= 0.0) return 0;
-   // Harmonic ratios (e.g. 0.618) are dimensionless.  We use a fixed ±3% tolerance
-   // as the standard harmonic validation zone (e.g. 0.618 ± 0.03 = 0.588..0.648).
-   // ATR is used to guard against noise — if a leg is smaller than one ATR, skip.
-   static const double HP_RATIO_TOL = 0.03;
    double atrVal = atr[0];
 
    // Collect 5 alternating swing points (X, A, B, C, D pattern)
@@ -61,29 +60,42 @@ int SigHarmonicPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
    // Skip if the XA leg is too small (likely noise — require at least one ATR)
    if(XA < atrVal) return 0;
 
-   double rAB = AB / XA;
-   double rBC = BC / AB;
-   double rCD = CD / BC;
-
-   // Harmonic ratio validation (Gartley/Bat/Butterfly/Crab approximation)
-   bool abOk  = (rAB >= 0.382 - HP_RATIO_TOL && rAB <= 0.886 + HP_RATIO_TOL);
-   bool bcOk  = (rBC >= 0.382 - HP_RATIO_TOL && rBC <= 0.886 + HP_RATIO_TOL);
-   bool cdOk  = (rCD >= 1.13  - HP_RATIO_TOL && rCD <= 3.618 + HP_RATIO_TOL);
-   if(!abOk || !bcOk || !cdOk) return 0;
+   // XAD ratio: distance from X to D relative to XA leg
+   double XD  = MathAbs(pivVal[4] - pivVal[0]);
+   double xad = XD / XA;
 
    int b = 0, se = 0;
 
-   // Bullish completion (D is a swing low with price showing reversal)
-   bool bullish = (pivVal[4] < pivVal[2]          // D below B
-               && r[0].close > pivVal[4]           // price recovering from D
-               && r[0].close > r[1].close);        // current bar bullish
-   // Bearish completion (D is a swing high with price showing reversal)
-   bool bearish = (pivVal[4] > pivVal[2]           // D above B
-               && r[0].close < pivVal[4]           // price falling from D
-               && r[0].close < r[1].close);        // current bar bearish
+   // Bullish completion: D is a swing low (below X), price recovering
+   bool dBelowX = (pivVal[4] < pivVal[0]);
+   // Bearish completion: D is a swing high (above X)
+   bool dAboveX = (pivVal[4] > pivVal[0]);
 
-   if(bullish) b = 3;
-   if(bearish) se = 3;
+   // Per-pattern XAD range checks
+   // Gartley
+   if(xad >= 0.75 && xad <= 0.85)
+   {
+      if(dBelowX) b++;
+      if(dAboveX) se++;
+   }
+   // Bat
+   if(xad >= 0.82 && xad <= 0.92)
+   {
+      if(dBelowX) b++;
+      if(dAboveX) se++;
+   }
+   // Butterfly
+   if(xad >= 1.20 && xad <= 1.32)
+   {
+      if(dBelowX) b++;
+      if(dAboveX) se++;
+   }
+   // Crab
+   if(xad >= 1.55 && xad <= 1.72)
+   {
+      if(dBelowX) b++;
+      if(dAboveX) se++;
+   }
 
    // Normalize to 0..5
    b  = MathMin(b,  5);
