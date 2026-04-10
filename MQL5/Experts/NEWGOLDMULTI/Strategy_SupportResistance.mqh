@@ -33,7 +33,7 @@ int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
          supBar[sc]    = i;
          // Count touches in 200-bar window
          int touches = 0;
-         for(int k = 1; k < 200 && k < ArraySize(r); k++)
+         for(int k = 1; k < 100 && k < ArraySize(r); k++)
             if(MathAbs(r[k].low - r[i].low) <= touchProx
             || MathAbs(r[k].high - r[i].low) <= touchProx
             || MathAbs(r[k].close - r[i].low) <= touchProx)
@@ -49,7 +49,7 @@ int SigSupportResistance(StrategySignal &s, ENUM_TIMEFRAMES tf)
          ress[rc]      = r[i].high;
          resBar[rc]    = i;
          int touches = 0;
-         for(int k = 1; k < 200 && k < ArraySize(r); k++)
+         for(int k = 1; k < 100 && k < ArraySize(r); k++)
             if(MathAbs(r[k].high - r[i].high) <= touchProx
             || MathAbs(r[k].low - r[i].high) <= touchProx
             || MathAbs(r[k].close - r[i].high) <= touchProx)

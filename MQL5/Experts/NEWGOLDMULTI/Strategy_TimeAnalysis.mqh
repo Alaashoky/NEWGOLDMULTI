@@ -52,29 +52,31 @@ int SigTimeAnalysis(StrategySignal &s, ENUM_TIMEFRAMES tf)
 
    int b = 0, se = 0;
 
-   // Momentum: 2 consecutive closed bars (r[1] and r[2])
-   if(r[1].close > r[2].close) b++; else if(r[1].close < r[2].close) se++;
-   if(r[2].close > r[3].close) b++; else if(r[2].close < r[3].close) se++;
-
-   // Bar-body quality of the last closed bar
+   // Count the 3 individual momentum signals separately for the overlap quality check
+   int mBull = 0, mBear = 0;
+   // Signal 1: r[1] vs r[2] close-to-close momentum
+   if(r[1].close > r[2].close) mBull++; else if(r[1].close < r[2].close) mBear++;
+   // Signal 2: r[2] vs r[3] close-to-close momentum
+   if(r[2].close > r[3].close) mBull++; else if(r[2].close < r[3].close) mBear++;
+   // Signal 3: bar-body quality of the last closed bar
    double body  = MathAbs(r[1].close - r[1].open);
    double range = r[1].high - r[1].low;
    if(range > 0.0 && body >= 0.5 * range)
    {
-      if(r[1].close > r[1].open) b++;
-      else                       se++;
+      if(r[1].close > r[1].open) mBull++;
+      else                       mBear++;
    }
 
+   // Award votes based on individual signals
+   b  += mBull;
+   se += mBear;
+
    // London–NY overlap (13:00–15:59): award bonus only when at least 2 of 3
-   // momentum signals agree in the leading direction
+   // specific momentum signals agree in the leading direction
    if(overlapActive)
    {
-      int momentumSignals = b + se > 0 ? MathMax(b, se) : 0;
-      if(momentumSignals >= 2)
-      {
-         if(b > se) b++;
-         else if(se > b) se++;
-      }
+      if(mBull >= 2 && mBull > mBear) b++;
+      else if(mBear >= 2 && mBear > mBull) se++;
    }
 
    // Normalize to 0..5

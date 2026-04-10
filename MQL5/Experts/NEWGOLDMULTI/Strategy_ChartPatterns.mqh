@@ -115,18 +115,18 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          int neckStart = sh1 + 1;
          if(neckStart < ArraySize(r))
          {
-            // Neckline: line from left-shoulder trough to right-shoulder trough
-            double neckLeft  = r[neckStart].low;
-            int    neckLBar  = neckStart;
+            // Neckline: right trough (between sh1 right shoulder and sh2 head)
+            // and left trough (between sh2 head and sh3 left shoulder)
+            double neckRight = r[neckStart].low;
             for(int i = neckStart; i < sh2 && i < ArraySize(r); i++)
-               if(r[i].low < neckLeft) { neckLeft = r[i].low; neckLBar = i; }
-            double neckRight = r[sh1 + 1].low;
-            for(int i = sh1 + 1; i < sh1 + (sh2 - sh1) && i < ArraySize(r); i++)
                if(r[i].low < neckRight) neckRight = r[i].low;
+            double neckLeft = r[sh2 + 1].low;
+            for(int i = sh2 + 1; i < sh3 && i < ArraySize(r); i++)
+               if(r[i].low < neckLeft) neckLeft = r[i].low;
 
             // Neckline slope validation: must be nearly flat (within ±0.5×ATR)
             bool neckFlat = (MathAbs(neckLeft - neckRight) <= atrVal * 0.5);
-            double neck = neckLeft;
+            double neck = neckRight;
             if(neckFlat && r[1].close < neck - atrVal * NECKLINE_BREAK_ATR) se++;
          }
       }
@@ -150,15 +150,17 @@ int SigChartPatterns(StrategySignal &s, ENUM_TIMEFRAMES tf)
          int neckStart = sl1 + 1;
          if(neckStart < ArraySize(r))
          {
-            double neckLeft  = r[neckStart].high;
+            // Right peak trough (between sl1 right shoulder and sl2 head)
+            double neckRight = r[neckStart].high;
             for(int i = neckStart; i < sl2 && i < ArraySize(r); i++)
-               if(r[i].high > neckLeft) neckLeft = r[i].high;
-            double neckRight = r[sl1 + 1].high;
-            for(int i = sl1 + 1; i < sl1 + (sl2 - sl1) && i < ArraySize(r); i++)
                if(r[i].high > neckRight) neckRight = r[i].high;
+            // Left peak trough (between sl2 head and sl3 left shoulder)
+            double neckLeft = r[sl2 + 1].high;
+            for(int i = sl2 + 1; i < sl3 && i < ArraySize(r); i++)
+               if(r[i].high > neckLeft) neckLeft = r[i].high;
 
             bool neckFlat = (MathAbs(neckLeft - neckRight) <= atrVal * 0.5);
-            double neck = neckLeft;
+            double neck = neckRight;
             if(neckFlat && r[1].close > neck + atrVal * NECKLINE_BREAK_ATR) b++;
          }
       }
